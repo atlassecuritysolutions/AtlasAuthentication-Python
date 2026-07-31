@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlas-auth"
+version = "1.0.0"
+description = "Atlas authentication library - Python binding for Atlas.dll"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Proprietary" }
+authors = [{ name = "Atlas Security", email = "support@atlassecurity.site" }]
+keywords = ["authentication", "licensing", "hwid", "drm", "atlas"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage      = "https://atlassecurity.site"
+Documentation = "https://atlassecurity.site/docs"
+Dashboard     = "https://atlassecurity.site/dashboard"
+
+[tool.setuptools]
+packages = ["atlas"]
+
+[tool.setuptools.package-data]
+atlas = ["py.typed"]
+
+# Ship Atlas.dll + Atlas.c.h alongside the package. Wheel installs will
+# place them next to `atlas/` so `_ffi.py`'s default lookup finds them.
+[tool.setuptools.data-files]
+"." = ["Atlas.dll", "Atlas.c.h"]
