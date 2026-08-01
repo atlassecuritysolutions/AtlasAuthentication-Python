@@ -27,7 +27,7 @@ HERE    = Path(SPECPATH).resolve()
 SDK_DIR = HERE.parent / "Atlas SDK"
 
 a = Analysis(
-    ['example.py'],
+    ['Atlas Auth Example.py'],
     pathex=[str(SDK_DIR)],
     binaries=[
         # (source, destination-inside-bundle). '.' places the DLL at the

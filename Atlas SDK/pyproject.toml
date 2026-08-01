@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "atlas-auth"
 version = "1.0.0"
-description = "Atlas authentication library - Python binding for Atlas.dll"
+description = "Atlas SDK — Python binding for Atlas.dll (Windows x64)."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "Proprietary" }
-authors = [{ name = "Atlas Security", email = "support@atlassecurity.site" }]
+authors = [{ name = "Atlas Security Solutions", email = "mail@atlassecurity.site" }]
 keywords = ["authentication", "licensing", "hwid", "drm", "atlas"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -33,6 +33,8 @@ classifiers = [
 Homepage      = "https://atlassecurity.site"
 Documentation = "https://atlassecurity.site/docs"
 Dashboard     = "https://atlassecurity.site/dashboard"
+Legal         = "https://atlassecurity.site/legal"
+Repository    = "https://github.com/atlassecuritysolutions/AtlasAuthentication-Python"
 
 [tool.setuptools]
 packages = ["atlas"]

@@ -1,12 +1,16 @@
-"""Atlas.dll ctypes bindings - one line per Atlas_* export. No logic here."""
+"""ctypes bindings for Atlas.dll. One line per Atlas_* export. No logic here.
+
+Public API lives in atlas/__init__.py — this module is an implementation detail.
+See https://atlassecurity.site/docs for the full reference.
+"""
 import os, sys
 from ctypes import CDLL, POINTER, c_char_p, c_int, c_size_t, create_string_buffer
 from pathlib import Path
 
 
-# Load Atlas.dll from disk. Packaged apps (PyInstaller) ship it next to the
-# .exe or inside the frozen bundle; script hosts ship it next to the
-# atlas/ package.
+# Load Atlas.dll from disk. PyInstaller bundles ship it next to the .exe or
+# inside the frozen archive; running from source ships it next to the atlas/
+# package. Env override wins.
 def _dll_path():
     if os.environ.get("ATLAS_DLL_PATH"):
         return os.environ["ATLAS_DLL_PATH"]
@@ -91,7 +95,7 @@ WebhookSend             = _sig("Atlas_WebhookSend",             c_int, c_char_p,
 
 
 def read_str(fn, *args) -> str:
-    """Standard size-query pattern: NULL/0 → bytes needed, then alloc + call."""
+    """Two-call size-query: (NULL, 0) returns bytes needed, then allocate and call again."""
     n = fn(*args, None, 0) if args else fn(None, 0)
     if n <= 0: return ""
     buf = create_string_buffer(n)

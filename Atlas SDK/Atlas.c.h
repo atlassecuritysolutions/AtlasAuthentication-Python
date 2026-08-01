@@ -1,29 +1,18 @@
-/* ============================================================================
- * Atlas.c.h - plain C header for the Atlas.dll ABI.
+/*
+ * Atlas.c.h — plain C header for the Atlas.dll ABI. Windows x64 only.
  *
- * DO NOT confuse with the C++ header (Auth Library/Atlas Auth/Atlas.h). That
- * one exposes the namespaced C++ API for static-library consumers. THIS one
- * describes the extern "C" DLL surface produced by AtlasExports.cpp under the
- * DLL-Release|x64 build configuration.
+ * This describes the extern "C" DLL surface produced by AtlasExports.cpp.
+ * Not to be confused with the C++ header (Atlas.h) — that one exposes the
+ * namespaced C++ API for static-library consumers. Non-C++ bindings
+ * (Python ctypes, Rust bindgen, Zig, cffi) can't parse the C++ header;
+ * this is the one they can.
  *
- * WHY THIS FILE EXISTS:
- *   - Non-C++ language bindings (Python ctypes, Rust bindgen, Zig, C89
- *     clients, cffi) don't understand the C++ header. They need a header they
- *     can parse. This is it.
- *   - Every extern in this header maps 1:1 to a __declspec(dllexport) in
- *     AtlasExports.cpp. Adding a new export means adding a line here.
- *   - This file is API contract, not implementation. Ship it alongside
- *     Atlas.dll to bindgen users.
+ * Every extern here maps 1:1 to a __declspec(dllexport) in AtlasExports.cpp.
+ * All calls are __cdecl. Status codes are stable and add-only.
  *
- * COMPATIBILITY:
- *   - C89-compatible declarations (no bool, no C99 int types except stdint.h).
- *   - Windows x64 only. All calls are __cdecl.
- *
- * VERSION:
- *   - This header describes DLL surface v1.0.0. Call Atlas_Version() at runtime
- *     to detect the actual DLL version. Bump the header's major version any
- *     time you renumber a status code or rename an export.
- * ============================================================================ */
+ * Header targets DLL surface v1.0.0. Call Atlas_Version() at runtime to
+ * read the loaded DLL's actual version.
+ */
 
 #ifndef ATLAS_C_H
 #define ATLAS_C_H

@@ -1,5 +1,9 @@
-# Atlas Authentication Library - Example Usage (Console)
-# Run as x64 Python 3.9+ on Windows | Set your API key in atlas/__init__.py (atlas.API_KEY)
+# Atlas SDK — Console example (Python).
+# Run under 64-bit Python 3.9+ on Windows. Set atlas.API_KEY = "YOUR_API_KEY" below.
+#
+#   Dashboard: https://atlassecurity.site/dashboard
+#   Docs:      https://atlassecurity.site/docs
+#   Legal:     https://atlassecurity.site/legal
 
 import sys
 from pathlib import Path
