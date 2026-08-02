@@ -13,8 +13,6 @@ atlas.Startup()
 atlas.License.Login(key)
 ```
 
-This repo contains the prebuilt DLL, the Python binding (pure ctypes, typed with PEP 561), and a runnable console example with a PyInstaller packaging script.
-
 ---
 
 ## Contents
@@ -153,7 +151,7 @@ PyInstaller bundles the interpreter, the `atlas/` package, and `Atlas.dll` into 
    ```python
    import atlas, sys
 
-   atlas.API_KEY = "your-key"
+   atlas.API_KEY = "YOUR_API_KEY"
    atlas.Startup()
 
    key = prompt_user_for_license()
