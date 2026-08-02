@@ -323,18 +323,17 @@ The API key is a **routing identifier** — it tells the server which dashboard 
 
 ## Troubleshooting
 
-**`OSError: [WinError 193] %1 is not a valid Win32 application`** — you're running 32-bit Python against the 64-bit `Atlas.dll`. Install 64-bit Python.
+**`OSError: [WinError 193] %1 is not a valid Win32 application`** — you're running a 32-bit Python interpreter. Atlas requires 64-bit Python.
 
-**`FileNotFoundError: Could not find module 'Atlas.dll'`** — the binding probes the SDK folder, PyInstaller `_MEIPASS`, and the folder next to the exe. Set `ATLAS_DLL_PATH` to a fully-qualified path if you load Atlas from somewhere unusual.
+**`FileNotFoundError: Could not find module 'Atlas.dll'`** — `Atlas.dll` couldn't be loaded. Verify it exists beside the application, or set `ATLAS_DLL_PATH` to its absolute path.
 
-**Python exits silently on `Startup()`** — an integrity check tripped the kill path. Dashboard **Logs** shows the reason. Common causes: API key still `"YOUR_API_KEY"`; API key belongs to a deleted app; a debugger is attached (PyCharm debugger, `pdb`, VS Code Python debugger).
+**Application exits during `Startup()`** — Atlas terminated the process after an integrity check failed. Verify `Atlas.API_KEY` is set correctly, the application still exists in the dashboard, and no debugger is attached (`pdb`, VS Code Python debugger, PyCharm debugger). See **Dashboard → Logs** for the exact failure reason.
 
-**`Login()` returns `False`, "Executable hash mismatch"** — you whitelisted a hash and then rebuilt. Update the whitelist, or don't whitelist during active development.
+**`Login()` returns `False`** — call `Atlas.GetErrorMessage()` to determine the failure. Common causes include an executable hash mismatch (after rebuilding), an expired or banned license, a banned HWID, or invalid credentials.
 
-**`Login()` returns `False`, "License banned" / "HWID banned"** — check **Bans** in the dashboard.
+**Packaged application exits immediately** — verify `Atlas.dll` is bundled with the executable, and if executable whitelisting is enabled, confirm the packaged executable matches the application's configured hash.
 
-**PyInstaller exe quits immediately** — almost always: `Atlas.dll` isn't bundled, or the apphash is auto-detecting `python.exe` because the spec file didn't include the DLL. Verify with `pyinstaller --log-level=DEBUG` that `Atlas.dll` is listed in the collected binaries.
-
+Please! view the when you have any runtime troubles [Atlas Diagnostic Logs](#diagnostic-logs)
 Full FAQ: [atlassecurity.site/docs](https://atlassecurity.site/docs).
 
 ---
@@ -354,7 +353,7 @@ Each entry in `logs\` is a complete record of one event:
 
 ```
 [Atlas Exit Report]
-Time:   2026-08-02 8:20:50
+Time:   2026-08-02 8:38:50
 Reason: CheckAuthentication: not authenticated or no session
 File:   Atlas Auth.cpp
 Line:   2258
