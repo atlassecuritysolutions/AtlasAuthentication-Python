@@ -1,4 +1,4 @@
-# Atlas SDK — Console example (Python).
+# Atlas SDK - Console example (Python).
 # Run under 64-bit Python 3.9+ on Windows. Set atlas.API_KEY = "YOUR_API_KEY" below.
 #
 #   Dashboard: https://atlassecurity.site/dashboard

@@ -15,7 +15,7 @@ pushd "%~dp0"
 python -m PyInstaller build_exe.spec ^
     --clean --noconfirm ^
     --distpath "\Output" ^
-    --workpath "build"
+    --workpath "build"  
 
 set RC=%errorlevel%
 popd

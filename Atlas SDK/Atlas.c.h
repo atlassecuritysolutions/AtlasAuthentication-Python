@@ -1,8 +1,8 @@
 /*
- * Atlas.c.h — plain C header for the Atlas.dll ABI. Windows x64 only.
+ * Atlas.c.h - plain C header for the Atlas.dll ABI. Windows x64 only.
  *
  * This describes the extern "C" DLL surface produced by AtlasExports.cpp.
- * Not to be confused with the C++ header (Atlas.h) — that one exposes the
+ * Not to be confused with the C++ header (Atlas.h) - that one exposes the
  * namespaced C++ API for static-library consumers. Non-C++ bindings
  * (Python ctypes, Rust bindgen, Zig, cffi) can't parse the C++ header;
  * this is the one they can.
@@ -316,7 +316,7 @@ ATLAS_API int ATLAS_CALL Atlas_VariableFetchBool(const char* key);
 ATLAS_API int ATLAS_CALL Atlas_VariableFetchInt (const char* key);
 
 /* -- webhooks -------------------------------------------------------------- */
-/* Fire-and-forget outbound HTTP POST. Unrelated to Atlas auth — exposed
+/* Fire-and-forget outbound HTTP POST. Unrelated to Atlas auth - exposed
  * for bindings that want to notify Discord/Slack/custom endpoints without
  * pulling a second HTTP dependency. Color is 0xRRGGBB (0x3498db default). */
 
