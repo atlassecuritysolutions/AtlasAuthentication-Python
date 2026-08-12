@@ -15,12 +15,7 @@
 #   atlas.License   license-key sign-in
 #   atlas.Account   username / password / email accounts
 #
-# The SDK version is NOT exposed in this file. The DLL is the single
-# source of truth: Atlas_Version() in the C++ runtime carries the value.
-# The release pipeline rewrites the wheel's METADATA at publish time
-# with the real version; the install hook calls Atlas_Version() at
-# install time to stamp the dev marker. User code never sees the
-# version string.
+
 
 from ctypes import byref, c_int
 from . import _ffi as _c
