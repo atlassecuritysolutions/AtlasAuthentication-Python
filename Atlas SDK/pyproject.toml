@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atlas-auth"
-version = "1.0.0"
-description = "Atlas SDK — Python binding for Atlas.dll (Windows x64)."
+dynamic = ["version"]
+description = "Atlas SDK - Python binding for Atlas.dll (Windows x64)."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "Proprietary" }
@@ -36,8 +36,19 @@ Dashboard     = "https://atlassecurity.site/dashboard"
 Legal         = "https://atlassecurity.site/legal"
 Repository    = "https://github.com/atlassecuritysolutions/AtlasAuthentication-Python"
 
+# Static placeholder. The release pipeline rewrites the wheel's
+# METADATA (atlas_auth-*.dist-info/METADATA) to the real SDK version
+# at publish time, so `pip show atlas-auth` reports the right number
+# on the consumer side. The placeholder stays "0.0.0" in source on
+# purpose: a dev who yanks this SDK template into their own project
+# should set version = "<their-app-version>" themselves. The real
+# Atlas SDK version is read from the DLL via Atlas_Version() at
+# runtime -- never from a string in this file or in atlas/__init__.py.
+version = "0.0.0"
+
 [tool.setuptools]
 packages = ["atlas"]
+include-package-data = true
 
 [tool.setuptools.package-data]
 atlas = ["py.typed"]
@@ -46,3 +57,6 @@ atlas = ["py.typed"]
 # place them next to `atlas/` so `_ffi.py`'s default lookup finds them.
 [tool.setuptools.data-files]
 "." = ["Atlas.dll", "Atlas.c.h"]
+
+# Ship the install-hook setup.py inside the sdist via MANIFEST.in. Wheels
+# already embed the hook into the install command.

@@ -9,16 +9,12 @@
 #   - Builds/Atlas Auth Example (Python).exe     (single self-extracting file)
 #
 # Design notes:
-# - `--onefile` (EXE with a.binaries + a.datas + a.zipfiles): PyInstaller
-#   writes a self-extracting exe that unpacks the interpreter + stdlib +
-#   our `atlas/` package + Atlas.dll into a temp `_MEIxxx` folder on each
-#   launch. The user only sees one .exe.
-# - Atlas.dll is bundled as a binary so it lives inside the .exe. The
-#   atlas/_ffi.py `_MEIPASS` fallback locates it at runtime. Advantage:
-#   single-file distribution, no sidecar to lose. Trade-off: rev'ing the
-#   DLL means rebuilding the exe. If you'd rather ship the DLL alongside
-#   the exe (independently updatable), remove the binaries=[('...',...)]
-#   entry below and copy Atlas.dll next to the exe after build.
+# - `--onefile` writes a self-extracting exe that unpacks the interpreter
+#   + stdlib + the `atlas/` package + Atlas.dll into a temp `_MEIxxx`
+#   folder on each launch. End users see one .exe; no sidecar.
+# - Atlas.dll is bundled via `binaries=` so it lives inside the .exe and
+#   is extracted alongside the package on launch. atlas/_ffi.py's
+#   _MEIPASS probe locates it at runtime.
 # - `atlas/` package is added via `pathex` so `import atlas` resolves at
 #   analysis time.
 from pathlib import Path

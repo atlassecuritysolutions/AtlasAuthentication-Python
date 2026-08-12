@@ -1,27 +1,61 @@
 """ctypes bindings for Atlas.dll. One line per Atlas_* export. No logic here.
 
-Public API lives in atlas/__init__.py — this module is an implementation detail.
+Public API lives in atlas/__init__.py - this module is an implementation detail.
 See https://atlassecurity.site/docs for the full reference.
 """
-import os, sys
+import os, sys, tempfile, atexit, ctypes
 from ctypes import CDLL, POINTER, c_char_p, c_int, c_size_t, create_string_buffer
 from pathlib import Path
 
 
-# Load Atlas.dll from disk. PyInstaller bundles ship it next to the .exe or
-# inside the frozen archive; running from source ships it next to the atlas/
-# package. Env override wins.
+# Locate Atlas.dll. Single-file distribution: PyInstaller bundles the DLL
+# into the .exe's archive; on launch it extracts to sys._MEIPASS. Dev
+# checkouts ship it next to the atlas/ package. If nothing on disk is
+# found, fall back to reading the DLL from PyInstaller's bundled archive
+# via __loader__ and writing it to a unique temp path.
 def _dll_path():
     if os.environ.get("ATLAS_DLL_PATH"):
         return os.environ["ATLAS_DLL_PATH"]
+
+    candidates = []
     if getattr(sys, "frozen", False):
-        p = Path(sys.executable).resolve().parent / "Atlas.dll"
-        if p.is_file(): return str(p)
+        candidates.append(Path(sys.executable).resolve().parent / "Atlas.dll")
         meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
-            p = Path(meipass) / "Atlas.dll"
+            candidates.append(Path(meipass) / "Atlas.dll")
+    candidates.append(Path(__file__).resolve().parent.parent / "Atlas.dll")
+
+    for p in candidates:
+        try:
             if p.is_file(): return str(p)
-    return str(Path(__file__).resolve().parent.parent / "Atlas.dll")
+        except OSError: pass
+
+    # PyInstaller bundles files into the archive; if a sidecar wasn't
+    # extracted to disk, pull it from the package loader and stage it in
+    # %TEMP% for the loader. Cleaned up on interpreter exit.
+    pkg_dir = Path(__file__).resolve().parent.parent
+    for src_name in ("Atlas.dll",):
+        bundled_path = pkg_dir / src_name
+        try:
+            data = bundled_path.read_bytes()
+        except OSError: continue
+        out_dir = Path(tempfile.gettempdir()) / "atlas-sdk"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f"Atlas-{os.getpid()}-{src_name}"
+        out_path.write_bytes(data)
+        try: os.chmod(out_path, 0o600)
+        except OSError: pass
+        def _cleanup(p=out_path):
+            try: p.unlink()
+            except OSError: pass
+        atexit.register(_cleanup)
+        ctypes.windll.kernel32.SetConsoleCtrlHandler(None, False)  # no-op guard
+        return str(out_path)
+
+    raise FileNotFoundError(
+        "Atlas.dll not found. Run from SDK tree, frozen via PyInstaller, "
+        "or set ATLAS_DLL_PATH."
+    )
 
 
 lib = CDLL(_dll_path())
@@ -88,6 +122,12 @@ ClearError            = _sig("Atlas_ClearError",            None)
 VariableFetch         = _sig("Atlas_VariableFetch",         c_int, c_char_p, c_char_p, c_size_t)
 VariableFetchBool     = _sig("Atlas_VariableFetchBool",     c_int, c_char_p)
 VariableFetchInt      = _sig("Atlas_VariableFetchInt",      c_int, c_char_p)
+
+# Atlas_Version(out, out_size) -> int. Reads the SDK version out of the DLL.
+# Internal-only: setuptools invokes it at wheel-build time via a pyproject
+# `cmd = ...` directive, and the install hook calls it to stamp the dev
+# marker. The atlas package never re-exposes the value to user code.
+Version               = _sig("Atlas_Version",               c_int, c_char_p, c_size_t)
 
 WebhookSendDiscord      = _sig("Atlas_WebhookSendDiscord",      c_int, c_char_p, c_char_p)
 WebhookSendDiscordEmbed = _sig("Atlas_WebhookSendDiscordEmbed", c_int, c_char_p, c_char_p, c_char_p, c_int)

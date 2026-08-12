@@ -1,4 +1,4 @@
-# Atlas SDK — Python binding.
+# Atlas SDK - Python binding.
 #
 #   Dashboard: https://atlassecurity.site/dashboard
 #   Docs:      https://atlassecurity.site/docs
@@ -14,8 +14,13 @@
 #   atlas.          session state, data, network, variables, webhooks
 #   atlas.License   license-key sign-in
 #   atlas.Account   username / password / email accounts
-
-__version__ = "1.0.0"
+#
+# The SDK version is NOT exposed in this file. The DLL is the single
+# source of truth: Atlas_Version() in the C++ runtime carries the value.
+# The release pipeline rewrites the wheel's METADATA at publish time
+# with the real version; the install hook calls Atlas_Version() at
+# install time to stamp the dev marker. User code never sees the
+# version string.
 
 from ctypes import byref, c_int
 from . import _ffi as _c
@@ -24,7 +29,7 @@ _OK = 0
 
 
 # Your app's API key. Get it from atlassecurity.site/dashboard.
-API_KEY = "YOUR_API_KEY"
+API_KEY = "894kO8WB5suGzk1KuLGoKsZyJPlnUEbYc3LYzZQq8axmgwFZ1rGBMnWzN6Wnjx8q"
 
 
 # -- Session lifecycle ---------------------------------------------------
@@ -63,7 +68,7 @@ class License:
         return _c.LoginUser(username.encode(), password.encode()) == _OK
 
     # Bind a license key to a new username/password.
-    # Does NOT sign in on success — call LoginUser(u, p) after.
+    # Does NOT sign in on success - call LoginUser(u, p) after.
     @staticmethod
     def Register(license_key, username, password):
         return _c.Register(license_key.encode(), username.encode(), password.encode()) == _OK
@@ -99,7 +104,7 @@ class Account:
             self.sign_in_country = ""
 
     # Sign in with account credentials. Check result.status.
-    # On NeedsVerification the SDK holds the challenge — call SubmitVerification(code).
+    # On NeedsVerification the SDK holds the challenge - call SubmitVerification(code).
     # On Ok, r.expiry / r.level / r.note are populated when the server sent them.
     @staticmethod
     def Login(username, password):
@@ -167,7 +172,7 @@ class Account:
         return _c.RedeemKey(0, license_key.encode()) == _OK
 
     # Start a password reset. identifier = username or email.
-    # Always returns True — anti-enumeration, the server never leaks whether it matched.
+    # Always returns True - anti-enumeration, the server never leaks whether it matched.
     @staticmethod
     def RequestPasswordReset(identifier):
         return _c.RequestPasswordReset(identifier.encode()) == _OK
@@ -296,7 +301,7 @@ class Webhook:
     def SendDiscordEmbed(webhook_url, title, description, color=0x3498db):
         return _c.WebhookSendDiscordEmbed(webhook_url.encode(), title.encode(), description.encode(), color) == _OK
 
-    # POST an arbitrary JSON payload — Slack, custom endpoints, telemetry.
+    # POST an arbitrary JSON payload - Slack, custom endpoints, telemetry.
     @staticmethod
     def Send(url, json_payload):
         return _c.WebhookSend(url.encode(), json_payload.encode()) == _OK
