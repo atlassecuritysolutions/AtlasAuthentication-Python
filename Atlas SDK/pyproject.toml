@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "atlas-auth"
-dynamic = ["version"]
+version = "0.0.0"
 description = "Atlas SDK - Python binding for Atlas.dll (Windows x64)."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -35,16 +35,6 @@ Documentation = "https://atlassecurity.site/docs"
 Dashboard     = "https://atlassecurity.site/dashboard"
 Legal         = "https://atlassecurity.site/legal"
 Repository    = "https://github.com/atlassecuritysolutions/AtlasAuthentication-Python"
-
-# Static placeholder. The release pipeline rewrites the wheel's
-# METADATA (atlas_auth-*.dist-info/METADATA) to the real SDK version
-# at publish time, so `pip show atlas-auth` reports the right number
-# on the consumer side. The placeholder stays "0.0.0" in source on
-# purpose: a dev who yanks this SDK template into their own project
-# should set version = "<their-app-version>" themselves. The real
-# Atlas SDK version is read from the DLL via Atlas_Version() at
-# runtime -- never from a string in this file or in atlas/__init__.py.
-version = "0.0.0"
 
 [tool.setuptools]
 packages = ["atlas"]
