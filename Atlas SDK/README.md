@@ -45,7 +45,6 @@ atlas.License.Login(key)
 Python Integration/
 ├-- Atlas SDK/
 │   ├-- Atlas.dll                  the DLL that runs the protection stack
-│   ├-- Atlas.c.h                  plain-C header describing the DLL ABI
 │   ├-- pyproject.toml             build config (setuptools)
 │   └-- atlas/
 │       ├-- __init__.py            the binding - mirrors the C++ namespace 1:1
@@ -67,10 +66,16 @@ Python Integration/
 |---|---|
 | Windows 10 or 11 (x64) | Atlas is Windows-x64 only. |
 | [Python 3.9+ (x64)](https://www.python.org/downloads/) | 32-bit Python cannot load `Atlas.dll`. |
-| pip | Bundled with Python - installs the SDK wheel. |
+| pip | Bundled with Python - installs the SDK from PyPI. |
 | An Atlas account | [atlassecurity.site](https://atlassecurity.site) - free. |
 
-No `pip install` beyond the SDK itself - the binding is pure ctypes, and the DLL ships alongside the package.
+Install from PyPI:
+
+```
+pip install atlas-auth
+```
+
+That pulls down the wheel, the binding, and `Atlas.dll` together. The binding is pure ctypes - no `node-gyp` analog, no compiler needed.
 
 ---
 
@@ -141,8 +146,12 @@ PyInstaller bundles the interpreter, the `atlas/` package, and `Atlas.dll` into 
 
 ## Integrate into your project
 
-1. Copy the [`Atlas SDK/`](Atlas%20SDK/) folder into your project (a `vendor/atlas/` folder is conventional), or `pip install .` from that folder to install the wheel.
-2. Set your API key from your own code before `Startup()`, or leave it inline in `Atlas SDK/atlas/__init__.py`:
+1. Add the package:
+   ```
+   pip install atlas-auth
+   ```
+   This pulls the binding, `Atlas.dll`, and the install hook into your environment.
+2. Set your API key from your own code before `Startup()`, or leave it inline in the installed package's `atlas/__init__.py`:
    ```python
    import atlas
    atlas.API_KEY = os.environ["ATLAS_KEY"]
@@ -162,6 +171,8 @@ PyInstaller bundles the interpreter, the `atlas/` package, and `Atlas.dll` into 
 
    run_my_application()   # authenticated
    ```
+
+Vendoring instead: copy the [`Atlas SDK/`](Atlas%20SDK/) folder into your project (a `vendor/atlas/` folder is conventional) and `pip install ./vendor/atlas/Atlas\ SDK` from that folder. Use the PyPI path for normal projects; vendor when you need the SDK to ride inside a private package index or air-gapped build pipeline.
 
 Once you have a shipping build, compute its SHA-256 and paste it into **Applications → Executable-hash whitelist**. Modified copies are then rejected server-side before the license is even checked. You can whitelist one hash per release and revoke old ones from the same panel.
 
@@ -231,7 +242,7 @@ atlas.Account.CompletePasswordReset(code, new_pass)
 
 `atlas.Account.Status` is one of `Ok`, `WrongCredentials`, `NeedsVerification`, `Banned`, `AccountPaused`, `ServerUnreachable`, `Error`.
 
-- On `Ok` - `r.expiry`, `r.level`, `r.note` are populated.
+- On `Ok` - `r.user_id`, `r.expiry`, `r.level`, `r.note` are populated.
 - On `NeedsVerification` - the server emailed an 8-digit code; pass it to `SubmitVerification`. `r.masked_email`, `r.sign_in_ip`, `r.sign_in_country` are populated so you can render something like "we sent a code to a•••@example.com from Riyadh."
 
 ### `atlas.Data`
@@ -240,7 +251,7 @@ Session state, valid once `Login` succeeds.
 
 ```python
 # Identity
-GetLicense()  GetUsername()  GetEmail()  GetIP()  GetHWID()  GetDevice()
+GetLicense()  GetUsername()  GetEmail()  GetPassword()  GetIP()  GetHWID()  GetDevice()
 GetNote()  GetUserId()  GetLevel()
 GetFirstSeenDate()  GetLastSeenDate()
 
@@ -263,6 +274,7 @@ Server operations that act on the current session.
 
 ```python
 CheckAuthentication()                          # force a fresh server round-trip
+Download(file_id)                              # dashboard-uploaded file → bytes, b'' on failure
 BanUser(reason, duration_minutes)              # duration = 0 → permanent
 SubmitLog(text)                                # ≤ 512 chars, appears in dashboard Logs
 ChangePassword(old_password, new_password)     # account flow only
@@ -329,7 +341,7 @@ The API key is a **routing identifier** - it tells the server which dashboard ac
 
 **Application exits during `Startup()`** - Atlas terminated the process after an integrity check failed. Verify `Atlas.API_KEY` is set correctly, the application still exists in the dashboard, and no debugger is attached (`pdb`, VS Code Python debugger, PyCharm debugger). See **Dashboard → Logs** for the exact failure reason.
 
-**`Login()` returns `False`** - call `Atlas.GetErrorMessage()` to determine the failure. Common causes include an executable hash mismatch (after rebuilding), an expired or banned license, a banned HWID, or invalid credentials.
+**`Login()` returns `False`** - call `atlas.Data.GetErrorMessage()` to determine the failure. Common causes include an executable hash mismatch (after rebuilding), an expired or banned license, a banned HWID, or invalid credentials.
 
 **Packaged application exits immediately** - verify `Atlas.dll` is bundled with the executable, and if executable whitelisting is enabled, confirm the packaged executable matches the application's configured hash.
 
@@ -360,7 +372,7 @@ Line:   2258
 ```
 
 > [!NOTE]
-> The rest of `%LOCALAPPDATA%\AtlasAuth` - `installed.flag`, `declined.flag`, `commit.sha`, `manage_autoupdate.bat` - is dev-only. Those files exist to drive the MSBuild auto-update hook and only appear when a dev environment (Visual Studio, VS Code, MSBuild, JetBrains, and similar) is detected. `logs\` is the only part of this folder your end users will ever have. Always remember to check this folder to diagnose any issues, it is your #1 GOTO!
+> The rest of `%LOCALAPPDATA%\AtlasAuth` is dev-only. End users only ever see `logs\`. Developers may also see a `dev_marker.json` written by the install hook (or `installed.flag`, `declined.flag`, `commit.sha`, `manage_autoupdate.bat` written when a dev environment like Visual Studio, VS Code, JetBrains, MSBuild, PyCharm, or WebStorm is detected). Those exist to drive SDK version checks and are unrelated to runtime diagnosis. `logs\` is the only part of this folder your end users will ever have. Always remember to check this folder to diagnose any issues, it is your #1 GOTO!
 
 ---
 
