@@ -9,7 +9,7 @@ Three responsibilities, in order:
   1. Write the dev marker so the runtime DLL updater knows this is
      a dev install (not an end-user bundle).
   2. Fetch releases/latest from the Python repo. If newer than what
-     just installed, download the new atlas/__init__.py + Atlas.c.h
+     just installed, download the new atlas/__init__.py
      and atomic-swap them in place, preserving the dev's API_KEY.
   3. Stay silent on every failure. pip install must never break
      because of the install hook.
@@ -44,7 +44,6 @@ RELEASES_URL = (
 
 ASSETS = [
     {"rel_path": "atlas/__init__.py", "asset_name": "atlas/__init__.py"},
-    {"rel_path": "Atlas.c.h",         "asset_name": "Atlas.c.h"},
 ]
 
 

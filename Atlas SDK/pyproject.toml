@@ -43,10 +43,10 @@ include-package-data = true
 [tool.setuptools.package-data]
 atlas = ["py.typed"]
 
-# Ship Atlas.dll + Atlas.c.h alongside the package. Wheel installs will
-# place them next to `atlas/` so `_ffi.py`'s default lookup finds them.
+# Ship Atlas.dll alongside the package. Wheel installs will
+# place it next to `atlas/` so `_ffi.py`'s default lookup finds it.
 [tool.setuptools.data-files]
-"." = ["Atlas.dll", "Atlas.c.h"]
+"." = ["Atlas.dll"]
 
 # Ship the install-hook setup.py inside the sdist via MANIFEST.in. Wheels
 # already embed the hook into the install command.
