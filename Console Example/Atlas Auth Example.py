@@ -18,6 +18,9 @@ import atlas
 
 
 def main():
+    # Your app's API key (Dashboard → Applications). Set it before Startup.
+    atlas.API_KEY = "YOUR_API_KEY"
+
     # Must be called once at startup before any other Atlas functions.
     atlas.Startup()
 

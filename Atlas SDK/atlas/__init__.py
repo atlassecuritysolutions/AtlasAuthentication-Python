@@ -1,7 +1,7 @@
 """Atlas SDK - Python binding.
 
    Dashboard: https://atlassecurity.site/dashboard
-   Docs:      https://atlassecurity.site/docs
+   Docs:      https://atlassecurity.site/docs?p=sdk/overview
    Legal:     https://atlassecurity.site/legal
 
    import atlas
@@ -10,10 +10,17 @@
    if atlas.License.Login("license-key"):
        ...  # signed in
 
+Any call that can fail returns False or an empty value. atlas.Data.GetErrorMessage() says why.
+
 Namespaces:
-   atlas.          session state, data, network, variables, webhooks
-   atlas.License   license-key sign-in
-   atlas.Account   username / password / email accounts
+   atlas.               Startup, Logout, Exit
+   atlas.License        sign in with a license key
+   atlas.Account        sign in with username + password (+ email)
+   atlas.Network        ask the server things during a session
+   atlas.Data           read what the session knows
+   atlas.Variables      read values you set on the dashboard
+   atlas.Entitlements   what this license or account may do
+   atlas.Webhook        send an HTTP POST
 """
 
 from ctypes import byref, c_int
@@ -28,55 +35,59 @@ _ATLAS_ERR_LOGIN_FAILED = 3
 _ATLAS_ERR_SERVER       = 7
 _ATLAS_ERR_NEEDS_VERIFY = 10
 
-# Your app's API key. Get it from atlassecurity.site/dashboard.
-API_KEY = "YOUR_API_KEY"
+# Dashboard > Applications. Set before Startup().
+API_KEY: str = "YOUR_API_KEY"
 
 
 # -- Session lifecycle ---------------------------------------------------
+# Startup() once, first (raises RuntimeError on failure). Logout() ends the session; the library stays loaded.
+# Exit() kills the process, no cleanup.
+# https://atlassecurity.site/docs?p=sdk/lifecycle
 
-def Startup():
-    """Initialise the library. Call once at the top of main()."""
+def Startup() -> None:
     _c.SetApiKey(API_KEY.encode())
     rc = _c.Startup()
     if rc != _OK:
         raise RuntimeError(_c.read_str(_c.GetErrorMessage) or f"Atlas_Startup failed ({rc})")
 
 
-def Logout():
-    """Terminate the session and clear all authentication state."""
+def Logout() -> None:
     _c.Logout()
 
 
-def Exit():
-    """Kill the process the hardest way Windows allows. Unbypassable, uncatchable, no cleanup."""
+def Exit() -> None:
     _c.Exit()
 
 
-# -- License mode --------------------------------------------------------
-# Single-user, license-key auth. No email, no verification code.
+def DisableMessageBoxes(disabled: bool = True) -> None:
+    """Stop the library opening any message box of its own. Call it before Startup()."""
+    _c.SetQuiet(1 if disabled else 0)
+
+
+# -- License -------------------------------------------------------------
+# Sign in with a license key. The first sign-in locks the key to this PC.
+# LoginUser and Register are only for a license that carries its own username and password. For real user accounts use Account.
+# https://atlassecurity.site/docs?p=sdk/license
 
 class License:
     @staticmethod
-    def Login(license_key):
-        """License-key sign-in. HWID-bound on first use."""
+    def Login(license_key: str) -> bool:
         return _c.Login(license_key.encode()) == _OK
 
     @staticmethod
-    def LoginUser(username, password):
-        """Username + password sign-in for a license bound to one user.
-        For accounts with email verification, use atlas.Account.Login.
-        """
+    def LoginUser(username: str, password: str) -> bool:
         return _c.LoginUser(username.encode(), password.encode()) == _OK
 
     @staticmethod
-    def Register(license_key, username, password):
-        """Bind a license key to a new username/password. Does NOT sign in - call LoginUser(u, p) after."""
+    def Register(license_key: str, username: str, password: str) -> bool:
         return _c.Register(license_key.encode(), username.encode(), password.encode()) == _OK
 
 
-# -- Account mode --------------------------------------------------------
-# Username / password / email accounts. Email verification, password reset,
-# and per-account key redemption.
+# -- Account -------------------------------------------------------------
+# Username and password accounts, with optional email verification and password reset.
+# Login returns a result: read result.status first. NeedsVerification means an 8-digit code was emailed, so call SubmitVerification(code).
+# Register does not sign in.
+# https://atlassecurity.site/docs?p=sdk/account
 
 class Account:
     class Status:
@@ -95,7 +106,7 @@ class Account:
             "masked_email", "sign_in_ip", "sign_in_country",
         )
 
-        def __init__(self):
+        def __init__(self) -> None:
             self.status          = Account.Status.Error
             self.user_id         = 0
             self.error_message   = ""
@@ -107,11 +118,7 @@ class Account:
             self.sign_in_country = ""
 
     @staticmethod
-    def Login(username, password):
-        """Sign in with account credentials. Inspect result.status to branch.
-        On NeedsVerification the SDK holds the challenge - call SubmitVerification(code).
-        On Ok, r.expiry / r.level / r.note are populated.
-        """
+    def Login(username: str, password: str) -> LoginResult:
         uid = c_int(0)
         rc  = _c.LoginAccountEx(username.encode(), password.encode(), byref(uid))
         r   = Account.LoginResult()
@@ -154,174 +161,188 @@ class Account:
         return r
 
     @staticmethod
-    def Register(username, password, email=""):
-        """Create a standalone account. Email optional but needed for password reset.
-        Does NOT sign in. If email is set, account stays unverified until ConfirmEmail.
-        """
+    def Register(username: str, password: str, email: str = "") -> bool:
         return _c.RegisterAccount(username.encode(), password.encode(), email.encode()) == _OK
 
     @staticmethod
-    def SubmitVerification(code):
-        """Submit the 8-digit code for the pending sign-in verify challenge."""
+    def SubmitVerification(code: str) -> bool:
         return _c.SubmitVerify(code.encode()) == _OK
 
     @staticmethod
-    def ResendVerification():
-        """Resend the sign-in verification code (60s server-side cooldown)."""
+    def ResendVerification() -> bool:
         return _c.ResendVerify() == _OK
 
     @staticmethod
-    def ConfirmEmail(code):
-        """Confirm a newly-registered account's email with the emailed code."""
+    def ConfirmEmail(code: str) -> bool:
         return _c.ConfirmEmail(code.encode()) == _OK
 
     @staticmethod
-    def HasPendingEmailConfirm():
-        """True while a registration email-confirm is pending."""
+    def HasPendingEmailConfirm() -> bool:
         return _c.HasPendingEmailConfirm() != 0
 
     @staticmethod
-    def Redeem(license_key):
-        """Redeem a license key onto the currently signed-in account."""
+    def Redeem(license_key: str) -> bool:
         return _c.RedeemKey(0, license_key.encode()) == _OK
 
     @staticmethod
-    def RequestPasswordReset(identifier):
-        """Start a password reset. identifier = username or email.
-        Always returns True - anti-enumeration, the server never leaks whether it matched.
-        """
+    def RequestPasswordReset(identifier: str) -> bool:
         return _c.RequestPasswordReset(identifier.encode()) == _OK
 
     @staticmethod
-    def CompletePasswordReset(code, new_password):
-        """Complete the reset with the emailed code + new password."""
+    def CompletePasswordReset(code: str, new_password: str) -> bool:
         return _c.CompletePasswordReset(code.encode(), new_password.encode()) == _OK
 
 
 # -- Network -------------------------------------------------------------
-# Direct server RPCs on the current session.
+# Ask the server something during a session. The library already checks the session in the background,
+# so CheckAuthentication() is only for right before a sensitive action.
+# https://atlassecurity.site/docs?p=sdk/network
 
 class Network:
     @staticmethod
-    def CheckAuthentication():
-        """Poll the server to confirm the current session is still valid."""
+    def CheckAuthentication() -> bool:
         return _c.CheckAuthentication() == _OK
 
     @staticmethod
-    def Download(file_id):
-        """Fetch a dashboard-uploaded file by id. Empty bytes on failure / not found."""
+    def Download(file_id: int) -> bytes:
         return _c.read_bytes(file_id)
 
     @staticmethod
-    def BanUser(reason, duration_minutes=0):
-        """Ban the current user from your app. duration_minutes = 0 → permanent."""
+    def BanUser(reason: str, duration_minutes: int = 0) -> bool:
         return _c.BanUser(reason.encode(), duration_minutes) == _OK
 
     @staticmethod
-    def SubmitLog(text):
-        """Emit a custom log line (max 512 chars) to the dashboard's Logs tab."""
+    def SubmitLog(text: str) -> bool:
         return _c.SubmitLog(text.encode()) == _OK
 
     @staticmethod
-    def ChangePassword(old_password, new_password):
-        """Change the current account's password."""
+    def ChangePassword(old_password: str, new_password: str) -> bool:
         return _c.ChangePassword(old_password.encode(), new_password.encode()) == _OK
 
     @staticmethod
-    def Ping():
-        """Round-trip latency to the auth server in ms, or -1 if unreachable."""
+    def Ping() -> int:
         return _c.Ping()
 
 
 # -- Data ----------------------------------------------------------------
-# Read-only session accessors. Populated after a successful sign-in.
+# Facts about the signed-in session. Valid only after a successful sign-in.
+# A getter with nothing to return gives "" or 0. GetDaysRemaining() is the exception: -1 means no expiry,
+# 0 means expired or under 24 hours left. GetExpiry() is "DD-MM-YYYY" or "Never".
+# https://atlassecurity.site/docs?p=sdk/data
 
 class Data:
     # Identity
     @staticmethod
-    def GetLicense():          return _c.read_str(_c.GetLicense)           # License key the session opened with.
+    def GetLicense() -> str:   return _c.read_str(_c.GetLicense)
     @staticmethod
-    def GetUsername():         return _c.read_str(_c.GetUsername)          # "" on license-only sessions.
+    def GetUsername() -> str:  return _c.read_str(_c.GetUsername)
     @staticmethod
-    def GetEmail():            return _c.read_str(_c.GetEmail)             # "" if none / license-only.
+    def GetEmail() -> str:     return _c.read_str(_c.GetEmail)
     @staticmethod
-    def GetPassword():         return _c.read_str(_c.GetPassword)          # Password used at sign-in, "" on license-only.
+    def GetPassword() -> str:  return _c.read_str(_c.GetPassword)
     @staticmethod
-    def GetIP():               return _c.read_str(_c.GetIP)                # Server-detected client IP.
+    def GetIP() -> str:        return _c.read_str(_c.GetIP)
     @staticmethod
-    def GetHWID():             return _c.read_str(_c.GetHWID)              # Hardware fingerprint.
+    def GetHWID() -> str:      return _c.read_str(_c.GetHWID)
     @staticmethod
-    def GetDevice():           return _c.read_str(_c.GetDevice)            # ComputerName / Windows username.
+    def GetDevice() -> str:    return _c.read_str(_c.GetDevice)
     @staticmethod
-    def GetNote():             return _c.read_str(_c.GetNote)              # Admin-set note, "" if none.
+    def GetNote() -> str:      return _c.read_str(_c.GetNote)
     @staticmethod
-    def GetFirstSeenDate():    return _c.read_str(_c.GetFirstSeenDate)     # First-ever authentication timestamp.
+    def GetFirstSeenDate() -> str: return _c.read_str(_c.GetFirstSeenDate)
     @staticmethod
-    def GetLastSeenDate():     return _c.read_str(_c.GetLastSeenDate)      # Most recent authentication timestamp.
+    def GetLastSeenDate() -> str: return _c.read_str(_c.GetLastSeenDate)
     @staticmethod
-    def GetUserId():           return _c.GetUserId()                       # Account row id, 0 if signed out.
+    def GetUserId() -> int:    return _c.GetUserId()
     @staticmethod
-    def GetLevel():            return _c.GetLevel()                        # Access level, 0 if unknown.
+    def GetLevel() -> int:     return _c.GetLevel()
 
     # Expiry
     @staticmethod
-    def GetExpiry():           return _c.read_str(_c.GetExpiry)            # "DD-MM-YYYY HH:MM:SS" or "Lifetime".
+    def GetExpiry() -> str:    return _c.read_str(_c.GetExpiry)
     @staticmethod
-    def GetDaysRemaining():    return _c.GetDaysRemaining()                # -1 = lifetime, 0 = expired.
+    def GetDaysRemaining() -> int: return _c.GetDaysRemaining()
     @staticmethod
-    def IsLifetime():          return _c.IsLifetime() != 0                 # True if the license never expires.
+    def IsLifetime() -> bool:  return _c.IsLifetime() != 0
     @staticmethod
-    def IsExpiringSoon(days_threshold=7):                                  # True if expiring within days_threshold.
+    def IsExpiringSoon(days_threshold: int = 7) -> bool:
         return _c.IsExpiringSoon(days_threshold) != 0
 
     # Status
     @staticmethod
-    def IsAuthenticated():     return _c.IsAuthenticated() != 0            # True if a live session is open.
+    def IsAuthenticated() -> bool: return _c.IsAuthenticated() != 0
     @staticmethod
-    def IsBanned():            return _c.IsBanned() != 0                   # True if the current user is banned.
+    def IsBanned() -> bool:    return _c.IsBanned() != 0
 
     # App-wide stats
     @staticmethod
-    def GetActiveUserCount():  return _c.read_str(_c.GetActiveUserCount)   # Users currently authenticated app-wide.
+    def GetActiveUserCount() -> str: return _c.read_str(_c.GetActiveUserCount)
     @staticmethod
-    def GetUserCount():        return _c.read_str(_c.GetUserCount)         # Total registered users.
+    def GetUserCount() -> str: return _c.read_str(_c.GetUserCount)
 
     # Errors
     @staticmethod
-    def GetErrorMessage():     return _c.read_str(_c.GetErrorMessage)      # Last error message, "" if none.
+    def GetErrorMessage() -> str: return _c.read_str(_c.GetErrorMessage)
     @staticmethod
-    def ClearError():          _c.ClearError()                             # Reset the error state.
+    def ClearError() -> None:  _c.ClearError()
     @staticmethod
-    def HasError():            return _c.HasError() != 0                   # True if the last call set an error.
+    def HasError() -> bool:    return _c.HasError() != 0
 
 
 # -- Variables -----------------------------------------------------------
-# Read-only key/value store you configure on the dashboard.
+# Values you set on the dashboard, read while the app runs. Change one without shipping a new build.
+# A key that does not exist gives "" (Fetch), 0 (FetchInt) or False (FetchBool).
+# https://atlassecurity.site/docs?p=sdk/variables
 
 class Variables:
     @staticmethod
-    def Fetch(key):            return _c.read_str(_c.VariableFetch, key.encode())    # "" if the key doesn't exist.
+    def Fetch(key: str) -> str:            return _c.read_str(_c.VariableFetch, key.encode())
     @staticmethod
-    def FetchBool(key):        return _c.VariableFetchBool(key.encode()) != 0        # "true" / "1" / "yes" → True; else False.
+    def FetchBool(key: str) -> bool:        return _c.VariableFetchBool(key.encode()) != 0
     @staticmethod
-    def FetchInt(key):         return _c.VariableFetchInt(key.encode())              # 0 if missing or unparseable.
+    def FetchInt(key: str) -> int:         return _c.VariableFetchInt(key.encode())
+
+
+# -- Entitlements --------------------------------------------------------
+# What this license or account may do: the features and credits you create on the dashboard.
+# Has and Remaining are for showing and hiding. Only Consume is enforced by the server.
+# https://atlassecurity.site/docs?p=sdk/entitlements
+
+class Entitlements:
+    @staticmethod
+    def Has(key: str) -> bool:
+        return _c.EntitlementHas(key.encode()) == 1
+
+    @staticmethod
+    def Remaining(key: str) -> int:
+        return _c.EntitlementRemaining(key.encode())
+
+    @staticmethod
+    def Consume(key: str, amount: int = 1) -> bool:
+        return _c.EntitlementConsume(key.encode(), amount) == 1
+
+    @staticmethod
+    def List() -> list[str]:
+        return [k for k in _c.read_str(_c.EntitlementList).split("\n") if k]
+
+    @staticmethod
+    def Refresh() -> bool:
+        return _c.EntitlementRefresh() == 1
 
 
 # -- Webhook -------------------------------------------------------------
-# Fire-and-forget HTTP POSTs (Discord, Slack, custom). Unrelated to Atlas auth.
+# Send an HTTP POST from the client: Discord, Slack or your own endpoint. Unrelated to Atlas sign-in.
+# https://atlassecurity.site/docs?p=sdk/webhook
 
 class Webhook:
     @staticmethod
-    def SendDiscord(webhook_url, message):
-        """Plaintext Discord webhook message."""
+    def SendDiscord(webhook_url: str, message: str) -> bool:
         return _c.WebhookSendDiscord(webhook_url.encode(), message.encode()) == _OK
 
     @staticmethod
-    def SendDiscordEmbed(webhook_url, title, description, color=0x3498db):
-        """Discord embed. color is 0xRRGGBB."""
+    def SendDiscordEmbed(webhook_url: str, title: str, description: str, color: int = 0x3498db) -> bool:
         return _c.WebhookSendDiscordEmbed(webhook_url.encode(), title.encode(), description.encode(), color) == _OK
 
     @staticmethod
-    def Send(url, json_payload):
-        """POST an arbitrary JSON payload - Slack, custom endpoints, telemetry."""
+    def Send(url: str, json_payload: str) -> bool:
         return _c.WebhookSend(url.encode(), json_payload.encode()) == _OK

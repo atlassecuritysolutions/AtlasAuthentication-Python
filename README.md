@@ -1,125 +1,135 @@
 # Atlas Authentication - Python SDK
 
-![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6?logo=windows&logoColor=white) ![Language](https://img.shields.io/badge/language-Python-3776AB?logo=python&logoColor=white) ![License](https://img.shields.io/badge/license-proprietary-lightgrey)
+![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6?logo=windows&logoColor=white) ![Language](https://img.shields.io/badge/language-Python-3776AB?logo=python&logoColor=white) ![License](https://img.shields.io/badge/license-MIT%20source%20%C2%B7%20proprietary%20DLL-lightgrey)
 
 [atlassecurity.site](https://atlassecurity.site) · [Dashboard](https://atlassecurity.site/dashboard) · [Docs](https://atlassecurity.site/docs) · [Discord](https://discord.gg/EG5dmpFaCF) · [mail@atlassecurity.site](mailto:mail@atlassecurity.site)
 
-Most auth libraries stop caring once login succeeds - the client is trusted for the rest of the session. Atlas doesn't. After `Login` returns, the SDK keeps proving to the server that the process is still the one that logged in: same binary, same memory, same network stack, still alive. If any of that stops being true, the process dies. Built for teams whose licensing keeps getting bypassed and whose binaries keep getting cracked.
+**Authorization that holds under active attack.**
 
-Two calls get you there:
-
-```python
-atlas.Startup()
-atlas.License.Login(key)
-```
-
----
+Most auth libraries stop caring once login succeeds - the client is trusted for the rest of the session. Atlas doesn't. After `Login` returns, the SDK keeps proving to the server that the process is still the one that logged in: same binary, same memory, same network stack, still alive. If any of that stops being true, the process ends. Built for teams whose licensing keeps getting bypassed and whose binaries keep getting cracked.
 
 ## Contents
 
-- [Repo layout](#repo-layout)
-- [Prerequisites](#prerequisites)
-- [Get an account, an app, a license](#get-an-account-an-app-a-license)
-- [Console example](#console-example)
-- [Integrate into your project](#integrate-into-your-project)
-- [API reference](#api-reference)
-  - [Session lifecycle](#session-lifecycle)
-  - [`atlas.License`](#atlaslicense)
-  - [`atlas.Account`](#atlasaccount)
-  - [`atlas.Data`](#atlasdata)
-  - [`atlas.Network`](#atlasnetwork)
-  - [`atlas.Variables`](#atlasvariables)
-  - [`atlas.Webhook`](#atlaswebhook)
-- [What Login starts](#what-login-starts)
+- [Install](#install)
+- [Quick start](#quick-start)
+- [Get an account, an app, and a license](#get-an-account-an-app-and-a-license)
+- [Examples](#examples)
+- [API at a glance](#api-at-a-glance)
+- [How a session is protected](#how-a-session-is-protected)
 - [The API-key model](#the-api-key-model)
+- [Executable hash whitelist](#executable-hash-whitelist)
+- [Packaging](#packaging)
+- [Auto-update](#auto-update)
 - [Troubleshooting](#troubleshooting)
-- [IMPORANT - Atlas Diagnostic Logs](#diagnostic-logs)
+- [Diagnostic logs](#diagnostic-logs)
 - [Support](#support)
-- [Legal](#legal)
+- [License](#license)
 
----
+## Install
 
-## Repo layout
-
-```
-Python Integration/
-├-- Atlas SDK/
-│   ├-- Atlas.dll                  the DLL that runs the protection stack
-│   ├-- pyproject.toml             build config (setuptools)
-│   └-- atlas/
-│       ├-- __init__.py            the binding - mirrors the C++ namespace 1:1
-│       ├-- _ffi.py                ctypes signatures for every Atlas_* export
-│       └-- py.typed               PEP 561 marker for type checkers
-└-- Console Example/
-    ├-- Atlas Auth Example.py      the star of the show
-    ├-- build_exe.spec             PyInstaller spec for a single-file .exe
-    └-- build_exe.bat              one-shot build script
-```
-
-`Atlas.dll` is prebuilt and versioned with the release. You don't rebuild the SDK to use it. The Atlas SDK source code is private.
-
----
-
-## Prerequisites
+### Requirements
 
 | | |
 |---|---|
 | Windows 10 or 11 (x64) | Atlas is Windows-x64 only. |
 | [Python 3.9+ (x64)](https://www.python.org/downloads/) | 32-bit Python cannot load `Atlas.dll`. |
-| pip | Bundled with Python - installs the SDK from PyPI. |
+| pip | Installs the SDK from PyPI. |
 | An Atlas account | [atlassecurity.site](https://atlassecurity.site) - free. |
 
-Install from PyPI:
+### Add it to your project
 
 ```
 pip install atlas-auth
 ```
 
-That pulls down the wheel, the binding, and `Atlas.dll` together. The binding is pure ctypes - no `node-gyp` analog, no compiler needed.
+That installs the binding and `Atlas.dll`. The binding is pure `ctypes` - no compiler, no extra dependencies. Then `import atlas` and set `atlas.API_KEY` before `atlas.Startup()`.
 
----
+> **1.0.3 and earlier:** the wheel installs `Atlas.dll` at the root of your Python environment (`sys.prefix`), but the binding looked beside `site-packages`. If `import atlas` raises `FileNotFoundError: Atlas.dll not found...`, update, or point the binding at the DLL before importing:
+>
+> ```python
+> import os, sys
+> os.environ["ATLAS_DLL_PATH"] = os.path.join(sys.prefix, "Atlas.dll")
+> import atlas
+> ```
 
-## Get an account, an app, a license
+Vendoring instead: copy the `Atlas SDK/` folder into your project and keep `atlas/` and `Atlas.dll` side by side - the binding finds the DLL beside the package with no configuration. Use the PyPI path for normal projects; vendor when the SDK has to ride inside a private package index or an air-gapped build.
 
-1. Sign up at [atlassecurity.site](https://atlassecurity.site), verify your email.
-2. **Applications → New application** - name it as you like, this will be often shown to end users in MessageBoxes or Emails, Copy the **API key** it hands you.
-3. **Licenses → Generate** - pick a duration (Weekly / Monthly / Lifetime / custom), a level (`1` for basic, `2+` for tiered), and optionally a note. Copy the key.
-4. *(Optional, for the account flow)* **Applications → Account policy** - choose when verification codes fire (never / first login / every N / once per day / new HWID / new HWID or IP / always). Toggle "email required at registration" if you want to force email addresses.
+### What's in this repo
 
-Free tier: 3 applications, 300 licenses across them, 3 file uploads per app.
+```
+Atlas SDK/
+  Atlas.dll                     the DLL that runs the protection stack
+  pyproject.toml, setup.py      build config (setuptools)
+  atlas/__init__.py             the binding - mirrors the C++ namespace 1:1
+  atlas/_ffi.py                 ctypes signatures for every Atlas_* export
+  atlas/py.typed                PEP 561 marker: the binding is typed
+Console Example/
+  Atlas Auth Example.py         headless CLI: license, account and register paths
+  build_exe.spec, build_exe.bat PyInstaller spec and one-shot build for a single-file .exe
+```
 
----
+`Atlas.dll` is prebuilt and versioned with the release. You don't rebuild the SDK. The SDK source is private.
 
-## Console example
+## Quick start
+
+```python
+import atlas, sys, os
+
+atlas.API_KEY = os.environ["ATLAS_KEY"]
+atlas.Startup()
+
+if not atlas.License.Login(os.environ["LICENSE"]):
+    print(atlas.Data.GetErrorMessage())
+    sys.exit(1)
+
+print("License:", atlas.Data.GetLicense())
+atlas.Logout()
+```
+
+> **Run without a debugger attached.** An attached debugger is treated as tampering: the process ends shortly after `Startup()`, and the event can be reported against the license or HWID as a ban. In Python: no `pdb`, no VS Code Python debugger, no PyCharm debugger.
+
+## Get an account, an app, and a license
+
+1. Sign up at [atlassecurity.site](https://atlassecurity.site) and verify your email.
+2. **Dashboard → Applications → New application.** Name it - end users see the name in dialogs and emails. Copy the **API key**. You can view it again later under **Applications → Manage → View API Key**.
+3. **Dashboard → Users → License users → Generate.** Pick a duration (or no expiry), a level (`1` for basic, `2+` for tiered) and an optional note. Copy the key.
+4. *Account flow only:* accounts live under **Users → Account users**. **Settings → Security → Account policy** sets when 8-digit verification codes fire (never, first login, every N logins, once per H hours, new device, new device or IP, always) and whether registration requires an email or a license key.
+
+Free tier: 3 applications, 300 licenses per app, 3 file uploads per app.
+
+## Examples
+
+### Console example
 
 Covers all three auth paths.
 
-1. Open [`Console Example/Atlas Auth Example.py`](Console%20Example/Atlas%20Auth%20Example.py). Replace `"YOUR_API_KEY"` with your key. Save.
+1. In `Console Example/Atlas Auth Example.py`, replace `"YOUR_API_KEY"` with your key.
 2. Run it:
+
    ```
    python "Console Example/Atlas Auth Example.py"
    ```
 
-The example asks which auth path to try:
+The example asks which path to try:
 
 ```
 Atlas Authentication Example
 
 Choose an auth path:
-  [1] License key       (classic license authentication)
+  [1] License key       (classic, HWID-bound)
   [2] Account sign-in   (username + password + email verification)
-  [3] Register account  (creates a new account, optional email)
+  [3] Register account  (creates a new account, optional email (Configured in dashboard))
 
 Choice [1/2/3]:
 ```
 
-Pick `[1]`, paste your license key. On success:
+Pick `[1]` and paste a license key. On success:
 
 ```
 --- User Information ---
 License:      ATLAS-A9F2K-4RMXM
-Expiry:       15-08-2026 14:32:00
-IP:           45.11.42.187
+Expiry:       15-08-2026
+IP:           203.0.113.42
 HWID:         Atlas-4A9C...E1B2
 Level:        1
 Note:         None
@@ -127,183 +137,93 @@ Active Users: 1
 Total Users:  3
 ```
 
-Open the dashboard **Logs** tab - the login is there with IP, HWID, latency, and result `ALLOW`. From **Sessions → Kick**, terminate the session; the example exits within about five seconds.
+Open **Dashboard → Logs** - the login is there with its IP, HWID and result. From **Monitor → Kill**, end the session; the example exits within a few seconds. Pick `[2]` for the account flow - if the server asks for verification, an 8-digit code arrives by email and the example prompts for it inline. Pick `[3]` to register a new account.
 
-Pick `[2]` for the account flow - if the server asks for verification, an 8-digit code arrives by email and the example prompts for it inline. Pick `[3]` to register a new account.
+To build a single-file `.exe`, see [Packaging](#packaging).
 
-Full source: [`Console Example/Atlas Auth Example.py`](Console%20Example/Atlas%20Auth%20Example.py).
-
-To package as a single-file Windows `.exe`:
-
-```
-cd "Console Example"
-build_exe.bat
-```
-
-PyInstaller bundles the interpreter, the `atlas/` package, and `Atlas.dll` into one exe. Ships as-is on a Windows machine.
-
----
-
-## Integrate into your project
-
-1. Add the package:
-   ```
-   pip install atlas-auth
-   ```
-   This pulls the binding, `Atlas.dll`, and the install hook into your environment.
-2. Set your API key from your own code before `Startup()`, or leave it inline in the installed package's `atlas/__init__.py`:
-   ```python
-   import atlas
-   atlas.API_KEY = os.environ["ATLAS_KEY"]
-   atlas.Startup()
-   ```
-3. Wire it up:
-   ```python
-   import atlas, sys
-
-   atlas.API_KEY = "YOUR_API_KEY"
-   atlas.Startup()
-
-   key = prompt_user_for_license()
-   if not atlas.License.Login(key):
-       print(atlas.Data.GetErrorMessage())
-       sys.exit(1)
-
-   run_my_application()   # authenticated
-   ```
-
-Vendoring instead: copy the [`Atlas SDK/`](Atlas%20SDK/) folder into your project (a `vendor/atlas/` folder is conventional) and `pip install ./vendor/atlas/Atlas\ SDK` from that folder. Use the PyPI path for normal projects; vendor when you need the SDK to ride inside a private package index or air-gapped build pipeline.
-
-Once you have a shipping build, compute its SHA-256 and paste it into **Applications → Executable-hash whitelist**. Modified copies are then rejected server-side before the license is even checked. You can whitelist one hash per release and revoke old ones from the same panel.
-
-For PyInstaller `.exe` builds, whitelist the hash of your final `.exe` (from `dist/`), not `python.exe`. If you load Atlas from an unusual location, set `ATLAS_DLL_PATH` in the environment before importing the module:
+## API at a glance
 
 ```python
-import os
-os.environ["ATLAS_DLL_PATH"] = r"C:\path\to\Atlas.dll"
-import atlas
-```
-
-The package ships with `py.typed` (PEP 561) - type checkers pick up the signatures automatically. No stub package needed.
-
----
-
-## API reference
-
-Full API surface in [`Atlas SDK/atlas/__init__.py`](Atlas%20SDK/atlas/__init__.py).
-
-### Session lifecycle
-
-Every integration touches these four calls, regardless of auth path.
-
-```python
-atlas.API_KEY = "YOUR_API_KEY"     # set before Startup, or leave inline in __init__.py
-atlas.Startup()                    # call once at the top of main()
+# Session
+atlas.API_KEY = "YOUR_API_KEY"     # set before Startup
+atlas.Startup()                    # once; raises RuntimeError on failure
 atlas.Logout()                     # end the session, clear all state
-atlas.Exit()                       # kill the process the hardest way Windows allows
-```
+atlas.Exit()                       # hard-terminate the process, uncatchable
 
-### `atlas.License`
+# License
+atlas.License.Login(license_key)                          # key only, HWID-bound
+atlas.License.LoginUser(username, password)               # for a license bound to one user
+atlas.License.Register(license_key, username, password)   # binds a license; does NOT sign in
 
-License-key sign-in: single-user, hardware-bound, no email or verification code.
-
-```python
-atlas.License.Login(license_key)                   # key only, HWID-bound
-atlas.License.LoginUser(username, password)        # for a license bound to one user
-atlas.License.Register(license_key,                # bind an existing license to
-                       username, password)         # a new user (does NOT sign in)
-```
-
-**`Login` return value and side effects**
-
-| | |
-|---|---|
-| Returns `True` | License valid, HWID accepted (or first-seen and now bound), session established. |
-| Returns `False` | See `atlas.Data.GetErrorMessage()` - invalid key, expired, banned, HWID mismatch, executable-hash mismatch, or server unreachable. |
-| On success | Starts the heartbeat and integrity threads (see [What Login starts](#what-login-starts)); populates `atlas.Data`. |
-| On failure | No threads started; no partial session state left behind. |
-
-### `atlas.Account`
-
-Username, password, and email accounts, with 8-digit email verification, password reset, and license redemption. Whether a verification code is required on a given sign-in is controlled per-app in the dashboard.
-
-```python
-# Inspect r.status to drive your flow.
-r = atlas.Account.Login(username, password)
-atlas.Account.Register(username, password, email)    # email optional; needed for reset
-atlas.Account.SubmitVerification(code)               # 8-digit sign-in code
-atlas.Account.ResendVerification()                   # 60 s cooldown
-atlas.Account.ConfirmEmail(code)                     # for a pending registration
+# Account
+r = atlas.Account.Login(username, password)               # inspect r.status
+atlas.Account.Register(username, password, email)         # email optional; needed for reset
+atlas.Account.SubmitVerification(code)                    # 8-digit sign-in code
+atlas.Account.ResendVerification()                        # 60 s cooldown
+atlas.Account.ConfirmEmail(code)                          # for a pending registration
 atlas.Account.HasPendingEmailConfirm()
-atlas.Account.Redeem(license_key)                    # add a license to the signed-in account
-atlas.Account.RequestPasswordReset(identifier)       # always returns True (anti-enumeration)
-atlas.Account.CompletePasswordReset(code, new_pass)
-```
+atlas.Account.Redeem(license_key)                         # apply a key to the signed-in account
+atlas.Account.RequestPasswordReset(identifier)            # True whether or not it matched
+atlas.Account.CompletePasswordReset(code, new_password)
 
-`atlas.Account.Status` is one of `Ok`, `WrongCredentials`, `NeedsVerification`, `Banned`, `AccountPaused`, `ServerUnreachable`, `Error`.
+# Network
+atlas.Network.CheckAuthentication()                       # force a fresh server round-trip
+atlas.Network.Download(file_id)                           # dashboard-uploaded file → bytes, empty on failure
+atlas.Network.BanUser(reason, duration_minutes)           # 0 (the default) = permanent
+atlas.Network.SubmitLog(text)                             # ≤ 512 chars, shows in Dashboard → Logs
+atlas.Network.ChangePassword(old_password, new_password)  # account sessions only
+atlas.Network.Ping()                                      # ms to reach the auth server, -1 if unreachable
 
-- On `Ok` - `r.user_id`, `r.expiry`, `r.level`, `r.note` are populated.
-- On `NeedsVerification` - the server emailed an 8-digit code; pass it to `SubmitVerification`. `r.masked_email`, `r.sign_in_ip`, `r.sign_in_country` are populated so you can render something like "we sent a code to a•••@example.com from Riyadh."
-
-### `atlas.Data`
-
-Session state, valid once `Login` succeeds.
-
-```python
-# Identity
+# Data - valid once Login succeeds
 GetLicense()  GetUsername()  GetEmail()  GetPassword()  GetIP()  GetHWID()  GetDevice()
-GetNote()  GetUserId()  GetLevel()
-GetFirstSeenDate()  GetLastSeenDate()
-
-# Expiry
+GetNote()  GetUserId()  GetLevel()  GetFirstSeenDate()  GetLastSeenDate()
 GetExpiry()  GetDaysRemaining()  IsLifetime()  IsExpiringSoon(days_threshold=7)
-
-# Status
-IsAuthenticated()  IsBanned()
-
-# App-wide counts
-GetActiveUserCount()  GetUserCount()
-
-# Errors
+IsAuthenticated()  IsBanned()  GetActiveUserCount()  GetUserCount()
 GetErrorMessage()  HasError()  ClearError()
-```
 
-### `atlas.Network`
+# Variables - set on the dashboard, read at runtime, no rebuild
+atlas.Variables.Fetch("key");  atlas.Variables.FetchBool("key");  atlas.Variables.FetchInt("key")
 
-Server operations that act on the current session.
+# Entitlements (releases after 1.0.3) - named features and counters the seller gives a license or account
+atlas.Entitlements.Has("key")                   # held, not expired, and for a counter something left
+atlas.Entitlements.Remaining("key")             # -1 no limit, 0 none, else what is left
+atlas.Entitlements.Consume("key", 1)            # spend from a counter; False if refused (Data.GetErrorMessage() says why)
+atlas.Entitlements.List();  atlas.Entitlements.Refresh()    # keys held; re-read now (the list is cached ~20 s)
 
-```python
-CheckAuthentication()                          # force a fresh server round-trip
-Download(file_id)                              # dashboard-uploaded file → bytes, b'' on failure
-BanUser(reason, duration_minutes)              # duration = 0 → permanent
-SubmitLog(text)                                # ≤ 512 chars, appears in dashboard Logs
-ChangePassword(old_password, new_password)     # account flow only
-Ping()                                         # round-trip ms to the auth server, -1 if unreachable
-```
-
-### `atlas.Variables`
-
-Configuration values set from the dashboard and read at runtime - change them without a rebuild.
-
-```python
-atlas.Variables.Fetch("welcome_msg")           # "" if the key doesn't exist
-atlas.Variables.FetchBool("beta_feature")      # "true" / "1" / "yes" → True; else False
-atlas.Variables.FetchInt("max_items")          # 0 if missing or unparseable
-```
-
-### `atlas.Webhook`
-
-Fire-and-forget HTTP POSTs, unrelated to authentication - a convenience for shipping Discord notifications and generic webhooks from your app.
-
-```python
+# Webhook - fire-and-forget POSTs
 atlas.Webhook.SendDiscord(webhook_url, message)
-atlas.Webhook.SendDiscordEmbed(webhook_url, title, description, color)  # color = 0xRRGGBB
+atlas.Webhook.SendDiscordEmbed(webhook_url, title, description, color)   # color = 0xRRGGBB
 atlas.Webhook.Send(url, json_payload)
 ```
 
----
+The C++ built-in Win32 dialogs are not available in Python - draw your own UI and call the same methods. `atlas.Account.Status` holds the seven status strings below.
 
-## What Login starts
+`Account.Login` returns a result. Branch on `status` first:
+
+| Status | Meaning | Do |
+|---|---|---|
+| `Ok` | Signed in. `user_id`, `expiry`, `level`, `note` are populated. | Continue. |
+| `NeedsVerification` | The server emailed an 8-digit code. `masked_email`, `sign_in_ip`, `sign_in_country` are populated. | Prompt for the code, then `SubmitVerification(code)`. |
+| `WrongCredentials` | Unknown username or password. | Show the message; let the user retry. |
+| `Banned` | The account is banned. | Show the message. Lift the ban under **Bans** in the dashboard. |
+| `AccountPaused` | Paused by the seller. | Show the message. The seller resumes it from the dashboard. |
+| `ServerUnreachable` | Network or DNS failure. On 1.0.3 and earlier this status is not returned: a network failure arrives as `WrongCredentials` with the cause in `error_message`. | Back off and retry. |
+| `Error` | Anything else. | Show `error_message`. |
+
+**Good to know**
+
+- `GetExpiry()` is a `DD-MM-YYYY` date (valid through the end of that day) or `Never`. `GetDaysRemaining()` is `-1` with no expiry, `0` when expired or under 24 hours are left, otherwise whole days.
+- `GetNote()` is `None` when no note is set.
+- On account sessions `GetLicense()` returns `user:<username>`, not a key. Show `GetUsername()` instead.
+- `GetPassword()` returns the password used at sign-in, in cleartext, for the life of the session.
+- `SubmitLog` queues the line (512 characters max); the next heartbeat sends it.
+- `Login` returns `false` on failure. Read `GetErrorMessage()` for the reason: invalid key, expired, banned, HWID mismatch, executable-hash mismatch, or server unreachable. On failure no threads start and no session state is left behind.
+
+Typing: the package ships inline type hints and a `py.typed` marker, so mypy and Pyright check your calls with no stubs. `atlas.Account.Login` returns an `atlas.Account.LoginResult`; the `Status` values are plain strings.
+
+Full reference with signatures and examples in all three languages: [SDK reference](https://atlassecurity.site/docs?p=sdk/lifecycle).
+
+## How a session is protected
 
 `Login` doesn't end at the handshake. From that point forward, every assumption gets re-verified for the entire life of the session - nothing is trusted just because it was true a moment ago. This is zero trust applied to the client itself, not just the connection.
 
@@ -314,9 +234,7 @@ atlas.Webhook.Send(url, json_payload)
 - **Detection never announces itself.** No dialog, no error, no exception, nothing to hook or intercept. The response to a failed check is the process ending - not a message telling an attacker what they tripped.
 - **Nothing static ever sits in the client waiting to be stolen.** No reusable secret, no long-lived token, no single value that unlocks the next session if it leaks.
 
-This is the actual model: authentication isn't a gate the client passes through once. It's a relationship the server keeps re-verifying, continuously, until the session ends - on the server's terms, not the client's.
-
----
+Heartbeat: license sessions hold a persistent socket and beat every 3-7 s; account sessions poll every 5 s. From the dashboard you can message a live session (**Monitor → Message**), end it (**Monitor → Kill**) or ban the user (**Bans**).
 
 ## The API-key model
 
@@ -326,55 +244,72 @@ The API key is a **routing identifier** - it tells the server which dashboard ac
 2. The Ed25519 signature the server places on its handshake reply, verified against three keys pinned inside `Atlas.dll` (primary, backup, emergency). A nulled server can't produce these signatures.
 3. HWID binding - the session key is derived with the HWID mixed in, so a stolen session token doesn't work from a different machine.
 4. A per-request nonce - replays are dropped.
-5. The executable-hash whitelist, if you've configured one.
+5. The executable-hash whitelist, if you've added any.
 
-> [!IMPORTANT]
-> A leaked API key alone doesn't let an attacker impersonate a user - but treat it as sensitive. Rotate it on suspected exposure (**Settings → Reset API Key**) and keep it out of public source.
+> **Important:** a leaked API key alone doesn't let an attacker impersonate a user - but treat it as sensitive. Rotate it on suspected exposure (**Dashboard → Settings → Security → Reset API key**) and keep it out of public source.
 
----
+## Executable hash whitelist
+
+Once you have a shipping build, drop the `.exe` into **Dashboard → Settings → Security → Authorized binary hashes → Authorize a binary**. The dashboard computes the SHA-256 in your browser - the file never leaves it. Modified copies are then rejected server-side before the license is even checked. Authorize one hash per release; remove old ones from the same panel. Building in CI? Choose **Paste hash** and paste the output of `Get-FileHash "myapp.exe" -Algorithm SHA256`.
+
+Whitelist the hash of the **packaged** `.exe` - the single file PyInstaller produces - not `python.exe`. Run unpackaged (`python app.py`) and every user on the same Python build sends the same hash, so a whitelist entry identifies the interpreter, not your app.
+
+More: [Executable Hash Whitelist](https://atlassecurity.site/docs?p=concepts/hash-whitelist).
+
+## Packaging
+
+**Single-file `.exe` with PyInstaller.** In `Console Example/`:
+
+```
+pip install pyinstaller
+build_exe.bat
+```
+
+`build_exe.bat` wraps `pyinstaller build_exe.spec` with the right flags and writes `Atlas Auth Example (Python).exe` to the `--distpath` folder set in the bat. The spec bundles the interpreter, the `atlas/` package and `Atlas.dll` into that one file with `binaries=[(Atlas.dll, '.')]`; at launch the exe unpacks to a temporary `_MEIxxxxxx` folder and `atlas/_ffi.py` finds the DLL there, so no `ATLAS_DLL_PATH` is needed. To ship the DLL beside the exe instead (revisable without a rebuild), drop the `binaries` entry and copy `Atlas.dll` next to the exe.
+
+The DLL is found in this order: `ATLAS_DLL_PATH`, beside a frozen exe or in its `_MEIPASS` folder, then beside the `atlas/` package.
+
+Other packagers (Nuitka, py2exe) aren't covered by the example. `ATLAS_DLL_PATH`, set before `import atlas`, is the universal fallback.
+
+## Auto-update
+
+Ship a new build without your users doing anything: upload it under **Dashboard → Settings → Security → Versions**, promote it, and every client on an older authorized version replaces its own `.exe` on its next launch. `Startup()` checks before any login, verifies the SHA-256 of the download, swaps the file and relaunches - about two seconds. Rollback is promoting an earlier version. It replaces one file, so it suits single-file builds (a PyInstaller one-file `.exe`). Details: [Auto-Update](https://atlassecurity.site/docs?p=guides/auto-update).
 
 ## Troubleshooting
 
+**`FileNotFoundError: Atlas.dll not found. Run from SDK tree, frozen via PyInstaller, or set ATLAS_DLL_PATH.`** - raised at `import atlas`, before `Startup()`. On 1.0.3 and earlier after a `pip install`, see the note under [Install](#add-it-to-your-project). Otherwise verify `Atlas.dll` sits beside the `atlas/` package or the application, or set `ATLAS_DLL_PATH` to its absolute path.
+
 **`OSError: [WinError 193] %1 is not a valid Win32 application`** - you're running a 32-bit Python interpreter. Atlas requires 64-bit Python.
 
-**`FileNotFoundError: Could not find module 'Atlas.dll'`** - `Atlas.dll` couldn't be loaded. Verify it exists beside the application, or set `ATLAS_DLL_PATH` to its absolute path.
+**The app exits shortly after `Startup()`** - Atlas ended the process after a check failed. Verify `atlas.API_KEY` is set, the application still exists in the dashboard, and no debugger is attached (`pdb`, VS Code Python debugger, PyCharm debugger). See [Diagnostic logs](#diagnostic-logs) for the exact reason.
 
-**Application exits during `Startup()`** - Atlas terminated the process after an integrity check failed. Verify `Atlas.API_KEY` is set correctly, the application still exists in the dashboard, and no debugger is attached (`pdb`, VS Code Python debugger, PyCharm debugger). See **Dashboard → Logs** for the exact failure reason.
+**`Login()` returns `False`** - call `atlas.Data.GetErrorMessage()`. Common causes: an executable-hash mismatch after a rebuild, an expired or banned license, a banned HWID, invalid credentials.
 
-**`Login()` returns `False`** - call `atlas.Data.GetErrorMessage()` to determine the failure. Common causes include an executable hash mismatch (after rebuilding), an expired or banned license, a banned HWID, or invalid credentials.
-
-**Packaged application exits immediately** - verify `Atlas.dll` is bundled with the executable, and if executable whitelisting is enabled, confirm the packaged executable matches the application's configured hash.
-
-Please! view the when you have any runtime troubles [Atlas Diagnostic Logs](#diagnostic-logs)
-Full FAQ: [atlassecurity.site/docs](https://atlassecurity.site/docs).
-
----
+**A packaged app exits immediately** - verify `Atlas.dll` is bundled with the executable, and if you've authorized binary hashes, confirm the packaged exe matches one.
 
 ## Diagnostic logs
 
-> [!IMPORTANT]
-> Every session-ending event - a failed integrity check, a lost connection, a server-issued end to the session - is written to disk the moment it occurs, with the exact cause, source file, and line. The `logs\` folder itself always exists, on every machine running an Atlas-built application, end users included.
+Every session-ending event - a failed integrity check, a lost connection, a server-issued end to the session - is written to disk the moment it occurs, with the exact cause, source file and line. The `logs\` folder always exists on every machine running an Atlas-built application, end users included.
 
-Press **`Win + R`**, paste:
+Press **`Win + R`** and paste:
 
 ```
 %LOCALAPPDATA%\AtlasAuth
 ```
 
-Each entry in `logs\` is a complete record of one event:
+Each `atlas_exit_<timestamp>.log` in `logs\` is a complete record of one event:
 
 ```
 [Atlas Exit Report]
-Time:   2026-08-02 8:38:50
+Time:   2026-08-02 08:38:50
 Reason: CheckAuthentication: not authenticated or no session
 File:   Atlas Auth.cpp
 Line:   2258
 ```
 
-> [!NOTE]
-> The rest of `%LOCALAPPDATA%\AtlasAuth` is dev-only. End users only ever see `logs\`. Developers may also see a `dev_marker.json` written by the install hook (or `installed.flag`, `declined.flag`, `commit.sha`, `manage_autoupdate.bat` written when a dev environment like Visual Studio, VS Code, JetBrains, MSBuild, PyCharm, or WebStorm is detected). Those exist to drive SDK version checks and are unrelated to runtime diagnosis. `logs\` is the only part of this folder your end users will ever have. Always remember to check this folder to diagnose any issues, it is your #1 GOTO!
+> The rest of that folder is dev-only: `dev_marker.json`, written by the install hook when pip installs from the source distribution. End users only ever have `logs\` and, after a tamper trip, `pending_bans.dat`. Check `logs\` first whenever a process ends unexpectedly.
 
----
+The reasons, with what causes each: [Diagnostic Logs](https://atlassecurity.site/docs?p=diagnostics/logs).
 
 ## Support
 
@@ -382,13 +317,13 @@ Line:   2258
 - **Discord** - [discord.gg/EG5dmpFaCF](https://discord.gg/EG5dmpFaCF) (fastest response)
 - **Email** - [mail@atlassecurity.site](mailto:mail@atlassecurity.site)
 
-Bug reports: include your OS version, Python version, the failing SDK call, and the dashboard **Logs** entry if there is one.
+Bug reports: include your OS version, Python version, the failing SDK call, and the **Dashboard → Logs** entry or the newest `atlas_exit_*.log` if there is one.
 
-The DLL's source isn't distributed with this repo. If you need a custom build or believe you've found a bug in `Atlas.dll` itself, contact support - the binding in this repo is thin; the protection stack lives in the DLL.
+The DLL's source isn't distributed with this repo. If you need a custom build, or believe you've found a bug in `Atlas.dll` itself, contact support - the binding in this repo is thin; the protection stack lives in the DLL.
 
----
+## License
 
-## Legal
+The binding source (`atlas/`) and the example code in this repository are released under the MIT License - see `LICENSE`. Everything below applies to `Atlas.dll`, to Atlas services, and to Atlas internals.
 
 © 2025–2026 Atlas Security Solutions. All rights reserved.
 Sold by Atlas Security Solutions - Jeddah, Kingdom of Saudi Arabia.
