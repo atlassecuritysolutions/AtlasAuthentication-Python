@@ -2,7 +2,7 @@
 
 Public API lives in atlas/__init__.py - this module is an implementation detail.
 """
-import os, sys, tempfile, atexit
+import os, sys, site, tempfile, atexit
 from ctypes import CDLL, POINTER, c_char_p, c_int, c_size_t, c_uint8, create_string_buffer
 from pathlib import Path
 
@@ -24,6 +24,11 @@ def _dll_path():
     # 3. Source checkout: package sits next to Atlas.dll in the SDK tree.
     candidates.append(Path(__file__).resolve().parent.parent / "Atlas.dll")
 
+    # 4. Wheel install: pyproject's data-files put Atlas.dll at the root of the
+    #    environment (sys.prefix), or of the user base for `pip install --user`.
+    candidates.append(Path(sys.prefix) / "Atlas.dll")
+    candidates.append(Path(site.getuserbase()) / "Atlas.dll")
+
     for p in candidates:
         try:
             if p.is_file():
@@ -31,7 +36,7 @@ def _dll_path():
         except OSError:
             pass
 
-    # 4. PyInstaller archive fallback: read the bundled bytes, stage to %TEMP%.
+    # 5. PyInstaller archive fallback: read the bundled bytes, stage to %TEMP%.
     pkg_dir = Path(__file__).resolve().parent.parent
     bundled_path = pkg_dir / "Atlas.dll"
     try:
@@ -44,12 +49,10 @@ def _dll_path():
 
     out_dir = Path(tempfile.gettempdir()) / "atlas-sdk"
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"Atlas-{os.getpid()}.dll"
-    out_path.write_bytes(data)
-    try:
-        os.chmod(out_path, 0o600)
-    except OSError:
-        pass
+    fd, name = tempfile.mkstemp(prefix="Atlas-", suffix=".dll", dir=out_dir)
+    out_path = Path(name)
+    with os.fdopen(fd, "wb") as f:
+        f.write(data)
     atexit.register(lambda p=out_path: _cleanup(p))
     return str(out_path)
 
@@ -78,6 +81,7 @@ SetApiKey             = _sig("Atlas_SetApiKey",             c_int,  c_char_p)
 Startup               = _sig("Atlas_Startup",               c_int)
 Logout                = _sig("Atlas_Logout",                c_int)
 Exit                  = _sig("Atlas_Exit",                  None)
+SetQuiet              = _sig("Atlas_SetQuiet",              c_int,  c_int)
 
 # -- license --
 Login                 = _sig("Atlas_Login",                 c_int,  c_char_p)
@@ -137,6 +141,13 @@ ClearError            = _sig("Atlas_ClearError",            None)
 VariableFetch         = _sig("Atlas_VariableFetch",         c_int,  c_char_p, c_char_p, c_size_t)
 VariableFetchBool     = _sig("Atlas_VariableFetchBool",     c_int,  c_char_p)
 VariableFetchInt      = _sig("Atlas_VariableFetchInt",      c_int,  c_char_p)
+
+# -- entitlements --
+EntitlementHas        = _sig("Atlas_EntitlementHas",        c_int,  c_char_p)
+EntitlementRemaining  = _sig("Atlas_EntitlementRemaining",  c_int,  c_char_p)
+EntitlementConsume    = _sig("Atlas_EntitlementConsume",    c_int,  c_char_p, c_int)
+EntitlementList       = _sig("Atlas_EntitlementList",       c_int,  c_char_p, c_size_t)
+EntitlementRefresh    = _sig("Atlas_EntitlementRefresh",    c_int)
 
 # -- webhook --
 WebhookSendDiscord      = _sig("Atlas_WebhookSendDiscord",      c_int, c_char_p, c_char_p)

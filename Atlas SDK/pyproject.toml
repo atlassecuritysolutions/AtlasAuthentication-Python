@@ -8,7 +8,7 @@ version = "0.0.0"
 description = "Atlas SDK - Python binding for Atlas.dll (Windows x64)."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "Proprietary" }
+license = { text = "MIT for the binding source; Atlas.dll is proprietary - see README" }
 authors = [{ name = "Atlas Security Solutions", email = "mail@atlassecurity.site" }]
 keywords = ["authentication", "licensing", "hwid", "drm", "atlas"]
 classifiers = [
