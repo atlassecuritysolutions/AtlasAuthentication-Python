@@ -9,6 +9,8 @@ venv/
 *.log
 .DS_Store
 Thumbs.db
+Atlas SDK/Atlas.update
+Atlas SDK/Atlas.update.sig
 
 *.zip
 

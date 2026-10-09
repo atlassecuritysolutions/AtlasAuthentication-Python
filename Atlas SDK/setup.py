@@ -38,7 +38,7 @@ def _local_app_data() -> Path:
 
 def write_dev_marker(version: str) -> None:
     try:
-        d = _local_app_data() / "AtlasAuth"
+        d = _local_app_data() / "AtlasAuth" / "data"
         d.mkdir(parents=True, exist_ok=True)
         marker = {
             "sdk": "pip",
