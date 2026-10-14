@@ -1,0 +1,107 @@
+# Atlas Auth for Python
+
+![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6?logo=windows&logoColor=white) ![Language](https://img.shields.io/badge/language-Python-3776AB?logo=python&logoColor=white) ![License](https://img.shields.io/badge/license-MIT%20source%20%C2%B7%20proprietary%20DLL-lightgrey)
+
+[atlassecurity.site](https://atlassecurity.site) · [Dashboard](https://atlassecurity.site/dashboard) · [Docs](https://atlassecurity.site/docs) · [Discord](https://discord.gg/EG5dmpFaCF) · [mail@atlassecurity.site](mailto:mail@atlassecurity.site)
+
+<p align="center"><a href="https://atlassecurity.site"><img src="https://atlassecurity.site/og-image.png" alt="Atlas. Sell software that can't be shared or read." width="100%"></a></p>
+
+## Sell software that can't be shared or read.
+
+**Authorization that holds under active attack.**
+
+Most licensing checks run once, at sign-in, and trust the client after that. Atlas keeps checking. A key locks to the first PC that signs in, and from then on the library proves to the server, on its own threads, that the process is still the one that signed in. Every sign-in, refusal and live session shows up in your dashboard, and you can message, end or ban any of them while the app runs.
+
+This is the Python SDK: a typed, pure `ctypes` binding over a prebuilt `Atlas.dll`. No compiler, no extra dependencies, no servers to run.
+
+## What you control
+
+- **Licenses or accounts.** Keys that lock to a machine, or usernames and passwords, per app.
+- **Emailed codes.** An 8-digit sign-in code on the policy you pick, from never to every sign-in.
+- **Live sessions.** Message, disconnect or kill any session. One ban covers the key, the IP and the hardware.
+- **Rules.** Block by country, VPN or device count. Alert rules that act on what they see, with Discord and webhook delivery.
+- **Variables, files and entitlements.** Change a value, serve a file or meter a credit without shipping a build.
+- **Updates.** Upload a build, promote it, and roll it out to 10% first. Clients verify the SHA-256, swap the file and relaunch.
+
+## Start in minutes
+
+Requirements: Windows 10 or 11 x64 and 64-bit Python 3.9 or newer. The binding ships inline type hints and a `py.typed` marker, so mypy and Pyright check your calls with no stubs.
+
+1. **Create an app.** Sign up at [atlassecurity.site](https://atlassecurity.site), create an application in the dashboard and copy its API key.
+2. **Install.** `pip install atlas-auth`
+3. **Sign in.**
+
+```python
+import sys
+import atlas
+
+atlas.Startup()                     # once, first
+
+if not atlas.License.Login("ATLAS-A9F2K-4RMXM"):
+    print(atlas.Data.GetErrorMessage())     # says why
+    sys.exit(1)
+# signed in
+```
+
+Free to start: three applications, 300 users per app, three file uploads per app and the full protection engine. No card. The Console project in this repo is already wired to the package.
+
+| You see | It means |
+|---|---|
+| `FileNotFoundError: Atlas.dll not found` | The DLL is not beside the `atlas/` package or your app. Point `ATLAS_DLL_PATH` at it. On 1.0.3 and earlier a `pip install` put it in `sys.prefix`, so update. |
+| `OSError: [WinError 193] %1 is not a valid Win32 application` | You are running 32-bit Python. Atlas needs 64-bit. |
+
+## Everything else is in the docs
+
+Every call, status code and edge case is documented, with examples in all three languages.
+
+| You want | Read |
+|---|---|
+| The whole picture in one page | [Overview](https://atlassecurity.site/docs?p=sdk/overview) |
+| License keys | [License](https://atlassecurity.site/docs?p=sdk/license) |
+| Accounts, emailed codes, password reset | [Account](https://atlassecurity.site/docs?p=sdk/account) |
+| Session control, file downloads, bans | [Network](https://atlassecurity.site/docs?p=sdk/network) |
+| Dashboard values and entitlements | [Variables](https://atlassecurity.site/docs?p=sdk/variables) · [Entitlements](https://atlassecurity.site/docs?p=sdk/entitlements) |
+
+## Shipping
+
+- **Hash whitelist.** Drop the single-file `.exe` PyInstaller produces into **Settings → Builds**, not `python.exe`. Run unpackaged and every user on the same Python build sends the same hash. [More](https://atlassecurity.site/docs?p=concepts/hash-whitelist).
+- **Packaging.** `build_exe.bat` in `Console Example/` runs PyInstaller with a spec that bundles `Atlas.dll` into the one file. The exe unpacks to a temporary folder at launch and the binding finds the DLL there. The lookup order is `ATLAS_DLL_PATH`, beside a frozen exe or in its unpack folder, then beside the `atlas/` package.
+- **Updates for your users.** Upload under **Versions**, promote, and older clients replace themselves on their next launch. It swaps one file, so it suits a one-file PyInstaller `.exe`. [More](https://atlassecurity.site/docs?p=guides/auto-update).
+- **Updates for the SDK.** `pip install --upgrade atlas-auth` brings the package forward. From 1.1.2, on a development machine `Atlas.dll` and the binding files also keep themselves current from signed releases, with a rollback if the new DLL will not load. End-user machines never update this way.
+
+When a process ends unexpectedly, the cause is already on disk: `%LOCALAPPDATA%\AtlasAuth\logs\atlas_exit_*.log` holds the reason, file and line. [Reading the log](https://atlassecurity.site/docs?p=diagnostics/logs).
+
+## Atlas Obfuscator
+
+The other half of Atlas protects the compiled file itself. Upload an `.exe` or `.dll` (x64 or x86), choose options and download the protected build. No source and no SDK. [See it work](https://atlassecurity.site/obfuscator), with real captures from protected builds.
+
+## Support
+
+[Docs](https://atlassecurity.site/docs) · [Discord](https://discord.gg/EG5dmpFaCF) (fastest) · [mail@atlassecurity.site](mailto:mail@atlassecurity.site). For a bug report, include your Windows and Python versions, the failing call, and the **Dashboard → Logs** entry or the newest `atlas_exit_*.log`.
+
+<p align="center"><a href="https://atlassecurity.site"><img src="https://atlassecurity.site/closing-banner.png" alt="Start free. Upgrade when you reach a ceiling. Both products have a free tier with the full protection engine. No card to start." width="100%"></a></p>
+
+## License
+
+The binding source (`atlas/`) and the example code in this repository are released under the MIT License - see `LICENSE`. Everything below applies to `Atlas.dll`, to Atlas services, and to Atlas internals.
+
+© 2025–2026 Atlas Security Solutions. All rights reserved.
+Sold by Atlas Security Solutions - Jeddah, Kingdom of Saudi Arabia.
+
+This SDK is licensed, not sold, for one purpose: integrating Atlas Authentication into your own software. That is the entire grant. Nothing here implies any broader right.
+
+**Not permitted, under any circumstance, without Atlas's prior written consent:**
+- Reverse engineering, decompiling, disassembling, or otherwise deriving source code, protocols, or algorithms from Atlas binaries, clients, or infrastructure
+- Circumventing, disabling, or interfering with any authentication or anti-tamper mechanism
+- Accessing, probing, or testing Atlas servers, databases, or infrastructure outside normal SDK operation
+- Using knowledge of Atlas internals to build, assist, or distribute a competing product or a bypass tool
+
+A violation terminates this license the moment it occurs. No warning. No cure period.
+
+This agreement is governed by the laws of the Kingdom of Saudi Arabia, including the Anti-Cyber Crime Law (Royal Decree No. M/17, 1428H), Articles 3 and 5. Unauthorized access to Atlas infrastructure is independently a criminal matter in most jurisdictions Atlas operates in, including under the U.S. Computer Fraud and Abuse Act (18 U.S.C. § 1030) and EU Directive 2013/40/EU. Atlas is not confined to one jurisdiction's remedies and will pursue violators wherever they are found.
+
+Atlas monitors for unauthorized access and reverse-engineering activity as a matter of course. Confirmed violations are referred for civil action, criminal referral where warranted, and pursuit of injunctive relief, damages, and cross-border enforcement - without prior notice.
+
+All rights not expressly granted are reserved.
+
+Authorized inquiries only: [mail@atlassecurity.site](mailto:mail@atlassecurity.site) · [atlassecurity.site/legal](https://atlassecurity.site/legal)
