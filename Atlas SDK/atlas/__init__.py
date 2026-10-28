@@ -24,6 +24,7 @@ Namespaces:
 """
 
 from ctypes import byref, c_int
+import json
 from . import _ffi as _c
 
 _OK = 0
@@ -59,9 +60,9 @@ def Exit() -> None:
     _c.Exit()
 
 
-def DisableMessageBoxes(disabled: bool = True) -> None:
+def DisableMessageBoxes() -> None:
     """Stop the library opening any message box of its own. Call it before Startup()."""
-    _c.SetQuiet(1 if disabled else 0)
+    _c.DisableMessageBoxes()
 
 
 # -- License -------------------------------------------------------------
@@ -77,6 +78,10 @@ class License:
     @staticmethod
     def LoginUser(username: str, password: str) -> bool:
         return _c.LoginUser(username.encode(), password.encode()) == _OK
+
+    @staticmethod
+    def ResetWhileSignedIn() -> bool:
+        return _c.ResetWhileSignedIn() == _OK
 
     @staticmethod
     def Register(license_key: str, username: str, password: str) -> bool:
@@ -191,6 +196,46 @@ class Account:
     @staticmethod
     def CompletePasswordReset(code: str, new_password: str) -> bool:
         return _c.CompletePasswordReset(code.encode(), new_password.encode()) == _OK
+
+    @staticmethod
+    def RequestEmailChange(password: str, new_email: str) -> bool:
+        return _c.RequestEmailChange(password.encode(), new_email.encode()) == _OK
+
+    @staticmethod
+    def ConfirmEmailChange(code: str) -> bool:
+        return _c.ConfirmEmailChange(code.encode()) == _OK
+
+    @staticmethod
+    def RequestAccountDeletion(password: str) -> bool:
+        return _c.RequestAccountDeletion(password.encode()) == _OK
+
+    @staticmethod
+    def ConfirmAccountDeletion(code: str) -> bool:
+        return _c.ConfirmAccountDeletion(code.encode()) == _OK
+
+    @staticmethod
+    def ListDevices() -> list[dict]:
+        return json.loads(_c.read_str(_c.ListDevices))
+
+    @staticmethod
+    def RevokeDevice(device_id: int) -> bool:
+        return _c.RevokeDevice(device_id) == _OK
+
+    @staticmethod
+    def SignOutOtherDevices() -> int:
+        return _c.SignOutOtherDevices()
+
+    @staticmethod
+    def ResetWhileSignedIn() -> bool:
+        return _c.ResetWhileSignedIn() == _OK
+
+    @staticmethod
+    def RequestResetCode(identifier: str) -> bool:
+        return _c.RequestResetCode(identifier.encode()) == _OK
+
+    @staticmethod
+    def ConfirmReset(identifier: str, code: str) -> bool:
+        return _c.ConfirmReset(identifier.encode(), code.encode()) == _OK
 
 
 # -- Network -------------------------------------------------------------

@@ -21,7 +21,6 @@ Never fails the install: every error is swallowed.
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -29,16 +28,13 @@ from setuptools import setup
 from setuptools.command.install import install as _install
 
 
-def _local_app_data() -> Path:
-    base = os.environ.get("LOCALAPPDATA")
-    if base:
-        return Path(base)
-    return Path.home() / "AppData" / "Local"
+def _profile_dir() -> Path:
+    return Path.home()
 
 
 def write_dev_marker(version: str) -> None:
     try:
-        d = _local_app_data() / "AtlasAuth" / "data"
+        d = _profile_dir() / ".atlassecurity" / "data"
         d.mkdir(parents=True, exist_ok=True)
         marker = {
             "sdk": "pip",

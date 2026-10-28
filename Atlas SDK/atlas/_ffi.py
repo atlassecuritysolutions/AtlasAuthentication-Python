@@ -3,7 +3,7 @@
 Public API lives in atlas/__init__.py - this module is an implementation detail.
 """
 import os, sys, site, tempfile, atexit
-from ctypes import CDLL, POINTER, c_char_p, c_int, c_size_t, c_uint8, create_string_buffer
+from ctypes import CDLL, POINTER, c_char_p, c_int, c_longlong, c_size_t, c_uint8, create_string_buffer
 from pathlib import Path
 
 
@@ -81,7 +81,7 @@ SetApiKey             = _sig("Atlas_SetApiKey",             c_int,  c_char_p)
 Startup               = _sig("Atlas_Startup",               c_int)
 Logout                = _sig("Atlas_Logout",                c_int)
 Exit                  = _sig("Atlas_Exit",                  None)
-SetQuiet              = _sig("Atlas_SetQuiet",              c_int,  c_int)
+DisableMessageBoxes   = _sig("Atlas_DisableMessageBoxes",   None)
 
 # -- license --
 Login                 = _sig("Atlas_Login",                 c_int,  c_char_p)
@@ -99,6 +99,16 @@ RedeemKey             = _sig("Atlas_RedeemKey",             c_int,  c_int,    c_
 RequestPasswordReset  = _sig("Atlas_RequestPasswordReset",  c_int,  c_char_p)
 CompletePasswordReset = _sig("Atlas_CompletePasswordReset", c_int,  c_char_p, c_char_p)
 ChangePassword        = _sig("Atlas_ChangePassword",        c_int,  c_char_p, c_char_p)
+RequestEmailChange     = _sig("Atlas_RequestEmailChange",     c_int,  c_char_p, c_char_p)
+ConfirmEmailChange     = _sig("Atlas_ConfirmEmailChange",     c_int,  c_char_p)
+RequestAccountDeletion = _sig("Atlas_RequestAccountDeletion", c_int,  c_char_p)
+ConfirmAccountDeletion = _sig("Atlas_ConfirmAccountDeletion", c_int,  c_char_p)
+ListDevices            = _sig("Atlas_ListDevices",            c_int,  c_char_p, c_size_t)
+RevokeDevice           = _sig("Atlas_RevokeDevice",           c_int,  c_longlong)
+SignOutOtherDevices    = _sig("Atlas_SignOutOtherDevices",    c_int)
+ResetWhileSignedIn     = _sig("Atlas_ResetWhileSignedIn",     c_int)
+RequestResetCode       = _sig("Atlas_RequestResetCode",       c_int,  c_char_p)
+ConfirmReset           = _sig("Atlas_ConfirmReset",           c_int,  c_char_p, c_char_p)
 
 # -- last-verify context (set by LoginAccountEx on NEEDS_VERIFY) --
 GetLastVerifyMaskedEmail = _sig("Atlas_GetLastVerifyMaskedEmail", c_int, c_char_p, c_size_t)
