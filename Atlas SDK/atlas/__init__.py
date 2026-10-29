@@ -25,6 +25,7 @@ Namespaces:
 
 from ctypes import byref, c_int
 import json
+from typing import Any
 from . import _ffi as _c
 
 _OK = 0
@@ -214,8 +215,9 @@ class Account:
         return _c.ConfirmAccountDeletion(code.encode()) == _OK
 
     @staticmethod
-    def ListDevices() -> list[dict]:
-        return json.loads(_c.read_str(_c.ListDevices))
+    def ListDevices() -> list[dict[str, Any]]:
+        devices: list[dict[str, Any]] = json.loads(_c.read_str(_c.ListDevices))
+        return devices
 
     @staticmethod
     def RevokeDevice(device_id: int) -> bool:

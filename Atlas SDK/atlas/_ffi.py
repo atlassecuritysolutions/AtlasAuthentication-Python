@@ -5,9 +5,10 @@ Public API lives in atlas/__init__.py - this module is an implementation detail.
 import os, sys, site, tempfile, atexit
 from ctypes import CDLL, POINTER, c_char_p, c_int, c_longlong, c_size_t, c_uint8, create_string_buffer
 from pathlib import Path
+from typing import Callable
 
 
-def _dll_path():
+def _dll_path() -> str:
     # 1. Explicit override wins.
     env = os.environ.get("ATLAS_DLL_PATH")
     if env:
@@ -53,11 +54,11 @@ def _dll_path():
     out_path = Path(name)
     with os.fdopen(fd, "wb") as f:
         f.write(data)
-    atexit.register(lambda p=out_path: _cleanup(p))
+    atexit.register(_cleanup, out_path)
     return str(out_path)
 
 
-def _cleanup(p):
+def _cleanup(p: Path) -> None:
     try:
         p.unlink()
     except OSError:
@@ -67,10 +68,11 @@ def _cleanup(p):
 lib = CDLL(_dll_path())
 
 
-def _sig(name, restype, *argtypes):
-    fn = getattr(lib, name)
-    fn.restype = restype
-    fn.argtypes = list(argtypes)
+def _sig(name: str, restype: object, *argtypes: object) -> Callable[..., int]:
+    raw = getattr(lib, name)
+    raw.restype = restype
+    raw.argtypes = list(argtypes)
+    fn: Callable[..., int] = raw
     return fn
 
 
@@ -165,7 +167,7 @@ WebhookSendDiscordEmbed = _sig("Atlas_WebhookSendDiscordEmbed", c_int, c_char_p,
 WebhookSend             = _sig("Atlas_WebhookSend",             c_int, c_char_p, c_char_p)
 
 
-def read_str(fn, *args) -> str:
+def read_str(fn: Callable[..., int], *args: object) -> str:
     """Two-call size-query for Atlas_* string getters."""
     n = fn(*args, None, 0) if args else fn(None, 0)
     if n <= 0:
