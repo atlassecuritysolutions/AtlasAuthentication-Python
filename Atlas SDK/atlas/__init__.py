@@ -1,8 +1,8 @@
 """Atlas SDK - Python binding.
 
-   Dashboard: https://atlassecurity.site/dashboard
-   Docs:      https://atlassecurity.site/docs?p=sdk/overview
-   Legal:     https://atlassecurity.site/legal
+   Dashboard: https://atlas.se.net/dashboard
+   Docs:      https://atlas.se.net/docs?p=sdk/overview
+   Legal:     https://atlas.se.net/legal
 
    import atlas
    atlas.API_KEY = "YOUR_API_KEY"
@@ -44,7 +44,7 @@ API_KEY: str = "YOUR_API_KEY"
 # -- Session lifecycle ---------------------------------------------------
 # Startup() once, first (raises RuntimeError on failure). Logout() ends the session; the library stays loaded.
 # Exit() kills the process, no cleanup.
-# https://atlassecurity.site/docs?p=sdk/lifecycle
+# https://atlas.se.net/docs?p=sdk/lifecycle
 
 def Startup() -> None:
     _c.SetApiKey(API_KEY.encode())
@@ -69,7 +69,7 @@ def DisableMessageBoxes() -> None:
 # -- License -------------------------------------------------------------
 # Sign in with a license key. The first sign-in locks the key to this PC.
 # LoginUser and Register are only for a license that carries its own username and password. For real user accounts use Account.
-# https://atlassecurity.site/docs?p=sdk/license
+# https://atlas.se.net/docs?p=sdk/license
 
 class License:
     @staticmethod
@@ -93,7 +93,7 @@ class License:
 # Username and password accounts, with optional email verification and password reset.
 # Login returns a result: read result.status first. NeedsVerification means an 8-digit code was emailed, so call SubmitVerification(code).
 # Register does not sign in.
-# https://atlassecurity.site/docs?p=sdk/account
+# https://atlas.se.net/docs?p=sdk/account
 
 class Account:
     class Status:
@@ -243,7 +243,7 @@ class Account:
 # -- Network -------------------------------------------------------------
 # Ask the server something during a session. The library already checks the session in the background,
 # so CheckAuthentication() is only for right before a sensitive action.
-# https://atlassecurity.site/docs?p=sdk/network
+# https://atlas.se.net/docs?p=sdk/network
 
 class Network:
     @staticmethod
@@ -275,7 +275,7 @@ class Network:
 # Facts about the signed-in session. Valid only after a successful sign-in.
 # A getter with nothing to return gives "" or 0. GetDaysRemaining() is the exception: -1 means no expiry,
 # 0 means expired or under 24 hours left. GetExpiry() is "DD-MM-YYYY" or "Never".
-# https://atlassecurity.site/docs?p=sdk/data
+# https://atlas.se.net/docs?p=sdk/data
 
 class Data:
     # Identity
@@ -339,7 +339,7 @@ class Data:
 # -- Variables -----------------------------------------------------------
 # Values you set on the dashboard, read while the app runs. Change one without shipping a new build.
 # A key that does not exist gives "" (Fetch), 0 (FetchInt) or False (FetchBool).
-# https://atlassecurity.site/docs?p=sdk/variables
+# https://atlas.se.net/docs?p=sdk/variables
 
 class Variables:
     @staticmethod
@@ -353,7 +353,7 @@ class Variables:
 # -- Entitlements --------------------------------------------------------
 # What this license or account may do: the features and credits you create on the dashboard.
 # Has and Remaining are for showing and hiding. Only Consume is enforced by the server.
-# https://atlassecurity.site/docs?p=sdk/entitlements
+# https://atlas.se.net/docs?p=sdk/entitlements
 
 class Entitlements:
     @staticmethod
@@ -379,7 +379,7 @@ class Entitlements:
 
 # -- Webhook -------------------------------------------------------------
 # Send an HTTP POST from the client: Discord, Slack or your own endpoint. Unrelated to Atlas sign-in.
-# https://atlassecurity.site/docs?p=sdk/webhook
+# https://atlas.se.net/docs?p=sdk/webhook
 
 class Webhook:
     @staticmethod

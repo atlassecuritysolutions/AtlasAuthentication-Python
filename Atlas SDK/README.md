@@ -2,9 +2,9 @@
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6?logo=windows&logoColor=white) ![Language](https://img.shields.io/badge/language-Python-3776AB?logo=python&logoColor=white) ![License](https://img.shields.io/badge/license-MIT%20source%20%C2%B7%20proprietary%20DLL-lightgrey)
 
-[atlassecurity.site](https://atlassecurity.site) · [Dashboard](https://atlassecurity.site/dashboard) · [Docs](https://atlassecurity.site/docs) · [Discord](https://discord.gg/EG5dmpFaCF) · [mail@atlassecurity.site](mailto:mail@atlassecurity.site)
+[atlas.se.net](https://atlas.se.net) · [Dashboard](https://atlas.se.net/dashboard) · [Docs](https://atlas.se.net/docs) · [Discord](https://discord.gg/EG5dmpFaCF) · [mail@atlas.se.net](mailto:mail@atlas.se.net)
 
-<p align="center"><a href="https://atlassecurity.site"><img src="https://atlassecurity.site/og-image.png" alt="Atlas. Licensing and binary protection for Windows software." width="100%"></a></p>
+<p align="center"><a href="https://atlas.se.net"><img src="https://atlas.se.net/og-image.png" alt="Atlas. Licensing and binary protection for Windows software." width="100%"></a></p>
 
 ## Sell software that can't be shared or read.
 
@@ -27,7 +27,7 @@ This is the Python SDK: a typed, pure `ctypes` binding over a prebuilt `Atlas.dl
 
 Requirements: Windows 10 or 11 x64 and 64-bit Python 3.9 or newer. The binding ships inline type hints and a `py.typed` marker, so mypy and Pyright check your calls with no stubs.
 
-1. **Create an app.** Sign up at [atlassecurity.site](https://atlassecurity.site), create an application in the dashboard and copy its API key.
+1. **Create an app.** Sign up at [atlas.se.net](https://atlas.se.net), create an application in the dashboard and copy its API key.
 2. **Install.** `pip install atlas-auth`
 3. **Sign in.**
 
@@ -56,30 +56,30 @@ Every call, status code and edge case is documented, with examples in all three 
 
 | You want | Read |
 |---|---|
-| The whole picture in one page | [Overview](https://atlassecurity.site/docs?p=sdk/overview) |
-| License keys | [License](https://atlassecurity.site/docs?p=sdk/license) |
-| Accounts, emailed codes, password reset | [Account](https://atlassecurity.site/docs?p=sdk/account) |
-| Session control, file downloads, bans | [Network](https://atlassecurity.site/docs?p=sdk/network) |
-| Dashboard values and entitlements | [Variables](https://atlassecurity.site/docs?p=sdk/variables) · [Entitlements](https://atlassecurity.site/docs?p=sdk/entitlements) |
+| The whole picture in one page | [Overview](https://atlas.se.net/docs?p=sdk/overview) |
+| License keys | [License](https://atlas.se.net/docs?p=sdk/license) |
+| Accounts, emailed codes, password reset | [Account](https://atlas.se.net/docs?p=sdk/account) |
+| Session control, file downloads, bans | [Network](https://atlas.se.net/docs?p=sdk/network) |
+| Dashboard values and entitlements | [Variables](https://atlas.se.net/docs?p=sdk/variables) · [Entitlements](https://atlas.se.net/docs?p=sdk/entitlements) |
 
 ## Shipping
 
-- **Hash whitelist.** Drop the single-file `.exe` PyInstaller produces into **Settings → Builds**, not `python.exe`. Run unpackaged and every user on the same Python build sends the same hash. [More](https://atlassecurity.site/docs?p=concepts/hash-whitelist).
+- **Hash whitelist.** Drop the single-file `.exe` PyInstaller produces into **Settings → Builds**, not `python.exe`. Run unpackaged and every user on the same Python build sends the same hash. [More](https://atlas.se.net/docs?p=concepts/hash-whitelist).
 - **Packaging.** `build_exe.bat` in `Console Example/` runs PyInstaller with a spec that bundles `Atlas.dll` into the one file. The exe unpacks to a temporary folder at launch and the binding finds the DLL there. The lookup order is `ATLAS_DLL_PATH`, beside a frozen exe or in its unpack folder, then beside the `atlas/` package.
-- **Updates for your users.** Upload under **Versions**, promote, and older clients replace themselves on their next launch. It swaps one file, so it suits a one-file PyInstaller `.exe`. [More](https://atlassecurity.site/docs?p=guides/auto-update).
+- **Updates for your users.** Upload under **Versions**, promote, and older clients replace themselves on their next launch. It swaps one file, so it suits a one-file PyInstaller `.exe`. [More](https://atlas.se.net/docs?p=guides/auto-update).
 - **Updates for the SDK.** `pip install --upgrade atlas-auth` brings the package forward. From 1.1.2, on a development machine `Atlas.dll` and the binding files also keep themselves current from signed releases, with a rollback if the new DLL will not load. End-user machines never update this way.
 
-When a process ends unexpectedly, the cause is already on disk: `%USERPROFILE%\.atlassecurity\logs\atlas_exit_*.log` holds the reason, file and line. [Reading the log](https://atlassecurity.site/docs?p=diagnostics/logs).
+When a process ends unexpectedly, the cause is already on disk: `%USERPROFILE%\.atlassecurity\logs\atlas_exit_*.log` holds the reason, file and line. [Reading the log](https://atlas.se.net/docs?p=diagnostics/logs).
 
 ## Atlas Obfuscator
 
-The other half of Atlas protects the compiled file itself. Upload an `.exe` or `.dll` (x64 or x86), choose options and download the protected build. No source and no SDK. [See it work](https://atlassecurity.site/obfuscator), with real captures from protected builds.
+The other half of Atlas protects the compiled file itself. Upload an `.exe` or `.dll` (x64 or x86), choose options and download the protected build. No source and no SDK. [See it work](https://atlas.se.net/obfuscator), with real captures from protected builds.
 
 ## Support
 
-[Docs](https://atlassecurity.site/docs) · [Discord](https://discord.gg/EG5dmpFaCF) (fastest) · [mail@atlassecurity.site](mailto:mail@atlassecurity.site). For a bug report, include your Windows and Python versions, the failing call, and the **Dashboard → Logs** entry or the newest `atlas_exit_*.log`.
+[Docs](https://atlas.se.net/docs) · [Discord](https://discord.gg/EG5dmpFaCF) (fastest) · [mail@atlas.se.net](mailto:mail@atlas.se.net). For a bug report, include your Windows and Python versions, the failing call, and the **Dashboard → Logs** entry or the newest `atlas_exit_*.log`.
 
-<p align="center"><a href="https://atlassecurity.site"><img src="https://atlassecurity.site/closing-banner.png" alt="Start free. Upgrade when you reach a ceiling. Both products have a free tier with the full protection engine. No card to start." width="100%"></a></p>
+<p align="center"><a href="https://atlas.se.net"><img src="https://atlas.se.net/closing-banner.png" alt="Start free. Upgrade when you reach a ceiling. Both products have a free tier with the full protection engine. No card to start." width="100%"></a></p>
 
 ## License
 
@@ -104,4 +104,4 @@ Atlas monitors for unauthorized access and reverse-engineering activity as a mat
 
 All rights not expressly granted are reserved.
 
-Authorized inquiries only: [mail@atlassecurity.site](mailto:mail@atlassecurity.site) · [atlassecurity.site/legal](https://atlassecurity.site/legal)
+Authorized inquiries only: [mail@atlas.se.net](mailto:mail@atlas.se.net) · [atlas.se.net/legal](https://atlas.se.net/legal)

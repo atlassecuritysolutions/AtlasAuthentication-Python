@@ -9,7 +9,7 @@ description = "Atlas SDK - Python binding for Atlas.dll (Windows x64)."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT for the binding source; Atlas.dll is proprietary - see README" }
-authors = [{ name = "Atlas Security", email = "mail@atlassecurity.site" }]
+authors = [{ name = "Atlas Security", email = "mail@atlas.se.net" }]
 keywords = ["authentication", "licensing", "hwid", "drm", "atlas"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -30,10 +30,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage      = "https://atlassecurity.site"
-Documentation = "https://atlassecurity.site/docs"
-Dashboard     = "https://atlassecurity.site/dashboard"
-Legal         = "https://atlassecurity.site/legal"
+Homepage      = "https://atlas.se.net"
+Documentation = "https://atlas.se.net/docs"
+Dashboard     = "https://atlas.se.net/dashboard"
+Legal         = "https://atlas.se.net/legal"
 Repository    = "https://github.com/atlassecuritysolutions/AtlasAuthentication-Python"
 
 [tool.setuptools]
